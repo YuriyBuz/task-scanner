@@ -64,7 +64,10 @@
     <div id="toast-container" class="fixed top-4 right-4 z-[2000] flex flex-col gap-2"></div>
 
     <div class="container mx-auto max-w-3xl p-4 sm:p-6">
-        <header class="flex items-center gap-4 mb-6">
+        <header class="flex items-center justify-between mb-6">
+            <button onclick="resetApiKey()" class="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" title="Змінити API ключ">
+                🔑 Змінити ключ
+            </button>
             <div class="flex-1 text-center">
                 <h1 class="text-3xl font-bold text-orange-700 dark:text-orange-500">Варки соусу</h1>
                 <p class="text-violet-600 dark:text-violet-400 text-sm font-bold mt-1 uppercase tracking-wide">QC + AI Розпізнавання</p>
@@ -76,7 +79,6 @@
 
         <div class="card p-6 rounded-lg shadow-lg border border-orange-100 dark:border-slate-700 space-y-6">
             
-            <!-- Дані співробітників -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Контролер *</label>
@@ -100,7 +102,6 @@
 
             <hr class="border-slate-200 dark:border-slate-700">
 
-            <!-- ФОТО ЗОНА -->
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <h3 class="font-bold text-slate-700 dark:text-slate-300 uppercase">Фотографії (AI сканування) *</h3>
@@ -128,7 +129,6 @@
                 </div>
             </div>
 
-            <!-- Знайдені дані -->
             <div class="bg-violet-50 dark:bg-slate-800/50 p-4 rounded-xl border border-violet-100 dark:border-slate-700">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
@@ -207,7 +207,6 @@
                 </div>
             </div>
 
-            <!-- Comments Section -->
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Коментар</label>
                 <textarea id="tst-comment" rows="2" placeholder="Додаткові нотатки..."></textarea>
@@ -223,11 +222,27 @@
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
-        // === ВАШІ НАЛАШТУВАННЯ ===
-        // ОБОВ'ЯЗКОВО ЗАМІНІТЬ ЦЕ ПОСИЛАННЯ НА СВОЄ ПІСЛЯ РОЗГОРТАННЯ СКРИПТА
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzw7MaZ-NrQOvRiXp7Eup5yUWDoSKB7u_tFjzVCMkkiD7istgiMlttxezNdB3Gpk1qHmA/exec"; 
+        // ==========================================
+        // НАЛАШТУВАННЯ ПОСИЛАНЬ ТА КЛЮЧІВ
+        // ==========================================
         
-        // --- БАЗА ДАНИХ (Коротка версія для прикладу, додайте всі свої рядки сюди) ---
+        // Вставте сюди посилання на ваш Google Apps Script
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQo6WtVXFHlW58ywEddpqbzhfDeytrsxcBD7srnal0_yPhRBMQcEj7r38sQ61TDu7e5g/exec"; 
+        
+        // Ключ AI тепер дістається з безпечної пам'яті браузера (локально)
+        let GEMINI_API_KEY = localStorage.getItem('gemini_api_key_qc') || "";
+
+        function resetApiKey() {
+            const newKey = prompt("Введіть новий API ключ Gemini (AIzaSy... або AQ.Ab...):", GEMINI_API_KEY);
+            if (newKey !== null && newKey.trim() !== "") {
+                GEMINI_API_KEY = newKey.trim();
+                localStorage.setItem('gemini_api_key_qc', GEMINI_API_KEY);
+                showToast("🔑 Ключ успішно оновлено!");
+            }
+        }
+        // ==========================================
+
+        // --- БАЗА ДАНИХ СОУСІВ ---
         const csvData = `
 1108 Теріякі Bonsai,1108.0, +, +, +,,17.5,19.5,9.5,11.7,-,-
 1101 Соєвий Bonsai,1101.0, +,, +,,12.8,14.8,-,-,4.5,4.8
@@ -324,7 +339,7 @@
             if (value === '✅') btn.classList.add('active-clean'); else btn.classList.add('active-dirty');
         }
 
-        // --- PHOTO & AI LOGIC ---
+        // --- PHOTO & ПРЯМИЙ ВИКЛИК AI ---
         let photos = { front: null, back: null };
         document.getElementById('zone-front').onclick = () => document.getElementById('in-front').click();
         document.getElementById('zone-back').onclick = () => document.getElementById('in-back').click();
@@ -344,13 +359,13 @@
                         canvas.width = w; canvas.height = h;
                         ctx.drawImage(img, 0, 0, w, h);
                         
-                        const base64 = canvas.toDataURL('image/jpeg', 0.7);
-                        photos[side] = base64;
-                        document.getElementById(`img-${side}`).src = base64;
+                        const base64Full = canvas.toDataURL('image/jpeg', 0.7);
+                        photos[side] = base64Full;
+                        document.getElementById(`img-${side}`).src = base64Full;
                         document.getElementById(`img-${side}`).style.display = 'block';
                         document.getElementById(`img-${side}`).nextElementSibling.style.display = 'flex';
                         
-                        analyzeAI(base64, side);
+                        analyzeAIDirect(base64Full, side);
                     }
                     img.src = e.target.result;
                 }
@@ -363,45 +378,86 @@
             document.getElementById(`img-${side}`).style.display = 'none'; e.target.style.display = 'none';
         }
 
-        async function analyzeAI(base64Image, side) {
+        // 🔥 ПРЯМИЙ ВИКЛИК GOOGLE GEMINI З БРАУЗЕРА 🔥
+        async function analyzeAIDirect(base64ImageFull, side) {
             const ind = document.getElementById('aiIndicator');
             const fields = side === 'front' ? ['tst-task', 'tst-bcFront', 'tst-product'] : ['tst-bcBack'];
             
-            if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE") {
-                showToast("⚠️ Замініть GOOGLE_SCRIPT_URL в коді!", true);
-                return;
+            // Якщо ключ пустий - просимо ввести
+            if (!GEMINI_API_KEY) {
+                const newKey = prompt("Для автоматичного розпізнавання введіть ваш API ключ Gemini (це робиться один раз):");
+                if (newKey && newKey.trim() !== "") {
+                    GEMINI_API_KEY = newKey.trim();
+                    localStorage.setItem('gemini_api_key_qc', GEMINI_API_KEY);
+                } else {
+                    showToast("⚠️ Розпізнавання скасовано. Заповніть дані вручну.", true);
+                    return;
+                }
             }
 
             ind.style.display = 'flex';
             fields.forEach(f => document.getElementById(f).classList.add('ai-pulse'));
 
             try {
-                // Відправляємо як text/plain щоб уникнути блокування CORS браузером
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'ai_extract', image: base64Image, side: side })
-                });
-                const result = await response.json();
-
-                if (result.status === 'success' && result.data) {
-                    if (side === 'front') {
-                        if (result.data.taskNumber) document.getElementById('tst-task').value = result.data.taskNumber;
-                        if (result.data.barcode) document.getElementById('tst-bcFront').value = result.data.barcode;
-                        if (result.data.product) { 
-                            document.getElementById('tst-product').value = result.data.product; 
-                            updateProductSpecs(); // Автоматично перераховуємо норми!
-                        }
-                    } else {
-                        if (result.data.barcode) document.getElementById('tst-bcBack').value = result.data.barcode;
-                    }
-                    showToast("✨ Дані розпізнано ШІ!");
-                } else if (result.status === 'error') {
-                    throw new Error(result.message || "ШІ не повернув дані");
+                // Відрізаємо data:image/jpeg;base64,
+                const base64Data = base64ImageFull.split(',')[1];
+                
+                // Використовуємо надійну версію flash
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                
+                let promptText = "Це документ виробництва соусів (технологічна карта). ";
+                if (side === 'front') {
+                    promptText += "Прочитай ЛИЦЬОВУ сторону. Знайди: 1) Номер завдання (4 цифри, напр. 9898); 2) Штрих-код (13 цифр); 3) Код і назву продукту (напр. '1108 Теріякі Bonsai'). Поверни ЛИШЕ формат JSON: {\"taskNumber\": \"9898\", \"barcode\": \"1000000098983\", \"product\": \"1108 Теріякі Bonsai\"}. Якщо чогось не видно, пиши null.";
+                } else {
+                    promptText += "Прочитай ЗВОРОТНУ сторону. Знайди штрих-код на цій сторінці. Поверни ЛИШЕ формат JSON: {\"taskNumber\": null, \"barcode\": \"2000000098982\", \"product\": null}.";
                 }
+
+                const payload = {
+                    "contents": [{
+                        "parts": [
+                            { "text": promptText },
+                            { "inline_data": { "mime_type": "image/jpeg", "data": base64Data } }
+                        ]
+                    }],
+                    "generationConfig": { "temperature": 0.1, "responseMimeType": "application/json" }
+                };
+
+                // Прямий запит на сервера Google
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || "HTTP Error " + response.status);
+                }
+
+                const data = await response.json();
+                let resultText = data.candidates[0].content.parts[0].text;
+                resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+                
+                const resultObj = JSON.parse(resultText);
+
+                if (side === 'front') {
+                    if (resultObj.taskNumber) document.getElementById('tst-task').value = resultObj.taskNumber;
+                    if (resultObj.barcode) document.getElementById('tst-bcFront').value = resultObj.barcode;
+                    if (resultObj.product) { 
+                        document.getElementById('tst-product').value = resultObj.product; 
+                        updateProductSpecs(); 
+                    }
+                } else {
+                    if (resultObj.barcode) document.getElementById('tst-bcBack').value = resultObj.barcode;
+                }
+                showToast("✨ Дані розпізнано ШІ!");
+
             } catch(e) {
-                console.error("Помилка ШІ:", e); 
+                console.error("AI Fetch Error:", e); 
                 showToast("⚠️ Помилка ШІ: " + (e.message || "Невідома помилка"), true);
+                if (e.message.includes("API key not valid")) {
+                    resetApiKey(); // Якщо ключ невірний, просимо ввести знову
+                }
             } finally {
                 ind.style.display = 'none';
                 fields.forEach(f => {
@@ -412,8 +468,9 @@
             }
         }
 
+        // --- ВІДПРАВКА ДАНИХ (В Apps Script) ---
         async function submitData() {
-            if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE") {
+            if (GOOGLE_SCRIPT_URL.includes("ВСТАВТЕ_ПОСИЛАННЯ")) {
                 showToast("⚠️ Замініть GOOGLE_SCRIPT_URL в коді!", true);
                 return;
             }
@@ -449,15 +506,18 @@
             };
 
             try {
+                // Відправляємо у Google Apps Script через no-cors (як в MRP Import)
                 await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(payload)
                 });
                 showToast("✅ Звіт успішно відправлено!");
                 setTimeout(() => location.reload(), 2000);
             } catch (e) {
                 console.error("Помилка відправки:", e);
-                showToast("❌ Помилка відправки: " + (e.message || "Невідома помилка"), true);
+                showToast("❌ Помилка відправки: Перевірте інтернет", true);
                 btn.disabled = false; document.getElementById('btnText').innerText = "📤 Відправити звіт"; document.getElementById('btnSpinner').classList.add('hidden');
             }
         }
