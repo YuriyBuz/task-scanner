@@ -224,6 +224,7 @@
 
     <script>
         // === ВАШІ НАЛАШТУВАННЯ ===
+        // ОБОВ'ЯЗКОВО ЗАМІНІТЬ ЦЕ ПОСИЛАННЯ НА СВОЄ ПІСЛЯ РОЗГОРТАННЯ СКРИПТА
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwgn381DAXXwTni0m5hKT7TqI6gE3jEHBh2T_Sk9IXPk1tFUyRB5i-1-gFgzO6o9Yl1DA/exec"; 
         
         // --- БАЗА ДАНИХ (Коротка версія для прикладу, додайте всі свої рядки сюди) ---
@@ -365,6 +366,12 @@
         async function analyzeAI(base64Image, side) {
             const ind = document.getElementById('aiIndicator');
             const fields = side === 'front' ? ['tst-task', 'tst-bcFront', 'tst-product'] : ['tst-bcBack'];
+            
+            if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE") {
+                showToast("⚠️ Замініть GOOGLE_SCRIPT_URL в коді!", true);
+                return;
+            }
+
             ind.style.display = 'flex';
             fields.forEach(f => document.getElementById(f).classList.add('ai-pulse'));
 
@@ -389,9 +396,12 @@
                         if (result.data.barcode) document.getElementById('tst-bcBack').value = result.data.barcode;
                     }
                     showToast("✨ Дані розпізнано ШІ!");
+                } else if (result.status === 'error') {
+                    throw new Error(result.message || "ШІ не повернув дані");
                 }
             } catch(e) {
-                console.log(e); showToast("⚠️ Помилка ШІ. Введіть вручну.", true);
+                console.error("Помилка ШІ:", e); 
+                showToast("⚠️ Помилка ШІ: " + (e.message || "Невідома помилка"), true);
             } finally {
                 ind.style.display = 'none';
                 fields.forEach(f => {
@@ -403,6 +413,11 @@
         }
 
         async function submitData() {
+            if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE") {
+                showToast("⚠️ Замініть GOOGLE_SCRIPT_URL в коді!", true);
+                return;
+            }
+
             // Перевірка
             const required = ['tst-employee', 'tst-cookName', 'tst-task', 'tst-product', 'tst-bcFront', 'tst-bcBack', 'tst-color', 'tst-aroma', 'tst-taste', 'tst-consist'];
             for(let id of required) { if(!document.getElementById(id).value) { showToast("Заповніть всі обов'язкові поля!", true); return; } }
@@ -441,7 +456,8 @@
                 showToast("✅ Звіт успішно відправлено!");
                 setTimeout(() => location.reload(), 2000);
             } catch (e) {
-                showToast("❌ Помилка відправки!", true);
+                console.error("Помилка відправки:", e);
+                showToast("❌ Помилка відправки: " + (e.message || "Невідома помилка"), true);
                 btn.disabled = false; document.getElementById('btnText').innerText = "📤 Відправити звіт"; document.getElementById('btnSpinner').classList.add('hidden');
             }
         }
