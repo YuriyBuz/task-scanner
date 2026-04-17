@@ -3,152 +3,460 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Варки соусу | AI Оператор</title>
+    <title>Варки соусу | QC AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: { colors: { slate: { 50: '#f8fafc', 800: '#1e293b', 900: '#0f172a' } } }
+            }
+        }
+    </script>
     <style>
-        .photo-zone { border: 2px dashed #cbd5e1; min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-radius: 12px; overflow: hidden; }
-        .photo-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
-        .ai-pulse { animation: pulse 2s infinite; border-color: #8b5cf6 !important; }
-        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); } 50% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0.1); } }
-        .spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        :root { --bg-color: #f8fafc; --card-bg: #fff; --text: #1e293b; }
+        .dark { --bg-color: #0f172a; --card-bg: #1e293b; --text: #f1f5f9; }
+        body { background-color: var(--bg-color); color: var(--text); padding-bottom: 2rem; transition: background-color 0.3s ease; }
+        .card { background-color: var(--card-bg); transition: background-color 0.3s ease; }
+        
+        input, select, textarea {
+            background-color: transparent !important;
+            border: 2px solid #cbd5e1 !important;
+            padding: 1rem !important;
+            border-radius: 0.5rem !important;
+            width: 100%;
+            font-size: 1.125rem !important;
+            color: inherit;
+        }
+        .dark input, .dark select, .dark textarea { border-color: #475569 !important; background-color: #1e293b !important; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #f97316 !important; box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2); }
+        input:disabled, select:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .toggle-btn { transition: all 0.2s; border: 2px solid #e2e8f0; color: #64748b; }
+        .dark .toggle-btn { border-color: #475569; color: #94a3b8; }
+        .toggle-btn.active-clean { background-color: #10b981; border-color: #10b981; color: white; }
+        .toggle-btn.active-dirty { background-color: #ef4444; border-color: #ef4444; color: white; }
+
+        .range-info { font-size: 0.75rem; margin-top: 0.25rem; font-weight: 600; }
+        .range-normal { color: #64748b; }
+        .dark .range-normal { color: #94a3b8; }
+        .range-error { color: #dc2626; animation: blink 1s infinite; font-weight: bold; }
+        .range-alert { background-color: #fee2e2 !important; border-color: #ef4444 !important; color: #991b1b !important; }
+        
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        .spinner { border: 3px solid rgba(0,0,0,0.1); width: 24px; height: 24px; border-radius: 50%; border-left-color: #f97316; animation: spin 1s linear infinite; }
+        .spinner-white { border-color: rgba(255,255,255,0.3); border-top-color: #fff; }
+        .spinner-ai { border: 3px solid rgba(139, 92, 246, 0.3); border-top: 3px solid #8b5cf6; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .photo-zone { border: 2px dashed #cbd5e1; border-radius: 0.75rem; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; cursor: pointer; position: relative; overflow: hidden; min-height: 120px; }
+        .dark .photo-zone { border-color: #475569; background-color: #1e293b; }
+        .photo-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 10; display: none; }
+        .photo-remove { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 20; background: #ef4444; color: white; border-radius: 50%; width: 28px; height: 28px; display: none; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer; }
+        
+        .ai-pulse { animation: pulse-border 2s infinite; border-color: #8b5cf6 !important; background-color: rgba(139, 92, 246, 0.05) !important; }
+        @keyframes pulse-border { 0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); } 50% { box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1); } }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 p-4 font-sans pb-10">
+<body class="font-sans antialiased">
+    
+    <div id="toast-container" class="fixed top-4 right-4 z-[2000] flex flex-col gap-2"></div>
 
-    <div class="max-w-lg mx-auto bg-white p-6 rounded-2xl shadow-xl space-y-6">
-        <header class="text-center">
-            <h1 class="text-2xl font-bold text-slate-800">Звіт Варки</h1>
-            <div id="aiStatus" class="hidden items-center justify-center gap-2 text-violet-600 font-bold mt-2">
-                <div class="spinner border-violet-600 border-t-violet-200" style="width:16px;height:16px;"></div> ШІ розпізнає...
+    <div class="container mx-auto max-w-3xl p-4 sm:p-6">
+        <header class="flex items-center gap-4 mb-6">
+            <div class="flex-1 text-center">
+                <h1 class="text-3xl font-bold text-orange-700 dark:text-orange-500">Варки соусу</h1>
+                <p class="text-violet-600 dark:text-violet-400 text-sm font-bold mt-1 uppercase tracking-wide">QC + AI Розпізнавання</p>
             </div>
+            <button id="themeToggle" class="p-3 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            </button>
         </header>
 
-        <div>
-            <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Оператор *</label>
-            <select id="operator" class="w-full p-3 border-2 border-slate-200 rounded-lg outline-none focus:border-orange-500">
-                <option value="" disabled selected>Оберіть себе...</option>
-                <option value="Солдатова І.В.">Солдатова І.В. (приклад)</option>
-                <option value="Загура І.Б.">Загура І.Б. (приклад)</option>
-            </select>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-            <div onclick="document.getElementById('in-front').click()" class="photo-zone cursor-pointer" id="z-front">
-                <span class="text-xs text-slate-400 font-bold">ФОТО ЛИЦЕ</span>
-                <input type="file" id="in-front" accept="image/*" capture="environment" class="hidden" onchange="uploadPhoto(this, 'front')">
-                <img id="img-front">
+        <div class="card p-6 rounded-lg shadow-lg border border-orange-100 dark:border-slate-700 space-y-6">
+            
+            <!-- Дані співробітників -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Контролер *</label>
+                    <select id="tst-employee" required class="p-2">
+                        <option value="" disabled selected>Оберіть...</option>
+                        <option value="Соботович Л.М.">Соботович Л.М.</option>
+                        <option value="Огаркова М.В.">Огаркова М.В.</option>
+                        <option value="Попадюк А.М.">Попадюк А.М.</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Варник *</label>
+                    <select id="tst-cookName" required class="p-2">
+                        <option value="" disabled selected>Оберіть...</option>
+                        <option value="Загура Іван Борисович">Загура Іван Борисович</option>
+                        <option value="Солдатова Ірина Володимирівна">Солдатова Ірина Володимирівна</option>
+                        <option value="Садиріна Ольга Анатоліївна">Садиріна Ольга Анатоліївна</option>
+                    </select>
+                </div>
             </div>
-            <div onclick="document.getElementById('in-back').click()" class="photo-zone cursor-pointer" id="z-back">
-                <span class="text-xs text-slate-400 font-bold">ФОТО ЗВОРОТ</span>
-                <input type="file" id="in-back" accept="image/*" capture="environment" class="hidden" onchange="uploadPhoto(this, 'back')">
-                <img id="img-back">
-            </div>
-        </div>
 
-        <div class="bg-violet-50 p-4 rounded-xl border border-violet-100 space-y-4">
-            <h3 class="text-xs font-bold text-violet-700 uppercase">Дані розпізнані ШІ</h3>
+            <hr class="border-slate-200 dark:border-slate-700">
+
+            <!-- ФОТО ЗОНА -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-bold text-slate-700 dark:text-slate-300 uppercase">Фотографії (AI сканування) *</h3>
+                    <div id="aiIndicator" class="hidden items-center gap-2 text-xs font-bold text-violet-600 bg-violet-100 dark:bg-violet-900/30 px-3 py-1 rounded-full">
+                        <div class="spinner-ai"></div> ШІ аналізує...
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="photo-zone bg-slate-50 dark:bg-slate-800" id="zone-front">
+                            <span class="text-xs font-bold text-slate-400">📷 Лицьова</span>
+                            <input type="file" accept="image/*" capture="environment" class="hidden" id="in-front" onchange="processImage(this, 'front')">
+                            <img id="img-front">
+                            <div class="photo-remove" onclick="removePhoto(event, 'front')">✕</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="photo-zone bg-slate-50 dark:bg-slate-800" id="zone-back">
+                            <span class="text-xs font-bold text-slate-400">📷 Зворотна</span>
+                            <input type="file" accept="image/*" capture="environment" class="hidden" id="in-back" onchange="processImage(this, 'back')">
+                            <img id="img-back">
+                            <div class="photo-remove" onclick="removePhoto(event, 'back')">✕</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Знайдені дані -->
+            <div class="bg-violet-50 dark:bg-slate-800/50 p-4 rounded-xl border border-violet-100 dark:border-slate-700">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">№ Завдання *</label>
+                        <input type="number" id="tst-task" class="font-mono font-bold" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Продукт *</label>
+                        <input type="text" id="tst-product" list="products-list" class="font-bold" required oninput="updateProductSpecs()">
+                        <datalist id="products-list"></datalist>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Штрих-код (Лице) *</label>
+                        <input type="text" id="tst-bcFront" class="font-mono text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Штрих-код (Зворот) *</label>
+                        <input type="text" id="tst-bcBack" class="font-mono text-sm" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-orange-500 text-white p-2 rounded-lg text-center font-bold uppercase tracking-wide">Органолептика</div>
+            
+            <div class="space-y-3">
+                <div class="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+                    <label class="text-sm font-bold w-1/3">Колір</label>
+                    <div class="flex gap-2 w-2/3"><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'color', '✅')">✅</button><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'color', '❌')">❌</button></div>
+                    <input type="hidden" id="tst-color" required>
+                </div>
+                <div class="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+                    <label class="text-sm font-bold w-1/3">Аромат</label>
+                    <div class="flex gap-2 w-2/3"><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'aroma', '✅')">✅</button><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'aroma', '❌')">❌</button></div>
+                    <input type="hidden" id="tst-aroma" required>
+                </div>
+                <div class="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+                    <label class="text-sm font-bold w-1/3">Смак</label>
+                    <div class="flex gap-2 w-2/3"><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'taste', '✅')">✅</button><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'taste', '❌')">❌</button></div>
+                    <input type="hidden" id="tst-taste" required>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <label class="text-sm font-bold w-1/3">Консистенція</label>
+                    <div class="flex gap-2 w-2/3"><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'consist', '✅')">✅</button><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'consist', '❌')">❌</button></div>
+                    <input type="hidden" id="tst-consist" required>
+                </div>
+            </div>
+            
+            <div class="bg-orange-500 text-white p-2 rounded-lg text-center font-bold uppercase tracking-wide">Фізико-хімія</div>
+            
             <div class="grid grid-cols-2 gap-4">
-                <input type="number" id="taskNum" placeholder="№ Завдання" class="p-3 border-2 border-slate-200 rounded-lg w-full font-bold">
-                <input type="text" id="prodName" placeholder="Назва соусу" class="p-3 border-2 border-slate-200 rounded-lg w-full text-xs">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Сухі речовини, °Bx</label>
+                    <input type="number" step="0.1" id="tst-dry" oninput="checkRange(this, 'dry')" required>
+                    <div id="info-dry" class="range-info range-normal"></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Bostwick, cm/30s</label>
+                    <input type="number" step="0.1" id="tst-visc" oninput="checkRange(this, 'visc')" required>
+                    <div id="info-visc" class="range-info range-normal"></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">pH</label>
+                    <input type="number" step="0.01" id="tst-ph" oninput="checkRange(this, 'ph')" required>
+                    <div id="info-ph" class="range-info range-normal"></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Центрифугування</label>
+                    <select id="tst-stab" required>
+                        <option value="" disabled selected>...</option>
+                        <option value="+">✅ Стійка</option>
+                        <option value="-">⚠️ Не стійка</option>
+                    </select>
+                    <div id="info-stab" class="range-info range-normal mt-1"></div>
+                </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <input type="text" id="bcFront" placeholder="ШК Лице" class="p-3 border-2 border-slate-200 rounded-lg w-full text-xs font-mono">
-                <input type="text" id="bcBack" placeholder="ШК Зворот" class="p-3 border-2 border-slate-200 rounded-lg w-full text-xs font-mono">
-            </div>
-        </div>
 
-        <button id="sendBtn" onclick="submit()" class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2">
-            <span>ВІДПРАВИТИ ЗВІТ</span>
-            <div id="loader" class="spinner hidden"></div>
-        </button>
+            <!-- Comments Section -->
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Коментар</label>
+                <textarea id="tst-comment" rows="2" placeholder="Додаткові нотатки..."></textarea>
+            </div>
+
+            <button onclick="submitData()" id="btnSubmit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2 text-lg disabled:opacity-50">
+                <span id="btnText">📤 Відправити звіт</span>
+                <div id="btnSpinner" class="spinner spinner-white hidden"></div>
+            </button>
+        </div>
     </div>
 
+    <canvas id="canvas" style="display:none;"></canvas>
+
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSGUwbgfu6pa1Jk9SsTlCdiNJlzzUVb8GWM2w9-iAQWgt9paBIwzwaEsm3uBizR6nl/exec"; // СЮДИ ПЕРЕМАЛЮЙТЕ URL З GOOGLE SCRIPT
-        let photos = { front: null, back: null };
+        // === ВАШІ НАЛАШТУВАННЯ ===
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwgn381DAXXwTni0m5hKT7TqI6gE3jEHBh2T_Sk9IXPk1tFUyRB5i-1-gFgzO6o9Yl1DA/exec"; 
+        
+        // --- БАЗА ДАНИХ (Коротка версія для прикладу, додайте всі свої рядки сюди) ---
+        const csvData = `
+1108 Теріякі Bonsai,1108.0, +, +, +,,17.5,19.5,9.5,11.7,-,-
+1101 Соєвий Bonsai,1101.0, +,, +,,12.8,14.8,-,-,4.5,4.8
+1102 Соєвий Bonsai Prem,1102.0, +,, +,,25.0,27.0,-,-,-,-
+        `;
+        const PRODUCT_SPECS_DB = {};
+        const productsList = [];
+        
+        function parseCSV() {
+            const lines = csvData.trim().split('\n');
+            lines.forEach(line => {
+                const cols = line.split(',');
+                if(cols.length < 2) return;
+                const name = cols[0].trim();
+                productsList.push(name);
+                const keyMatch = name.match(/^\d+/);
+                const key = keyMatch ? keyMatch[0] : name;
 
-        async function uploadPhoto(input, side) {
-            if (!input.files[0]) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                // Стискаємо фото перед відправкою (макс 1000px)
-                const img = new Image();
-                img.onload = async () => {
-                    const canvas = document.createElement('canvas');
-                    const scale = 1000 / Math.max(img.width, img.height);
-                    canvas.width = img.width * scale;
-                    canvas.height = img.height * scale;
-                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const base64 = canvas.toDataURL('image/jpeg', 0.7);
-                    
-                    photos[side] = base64;
-                    document.getElementById(`img-${side}`).src = base64;
-                    document.getElementById(`img-${side}`).style.display = 'block';
-
-                    // Відправляємо ШІ на аналіз
-                    analyze(base64, side);
+                PRODUCT_SPECS_DB[key] = {
+                    dry: { req: cols[2] === '+', min: parseFloat(cols[6]) || null, max: parseFloat(cols[7]) || null },
+                    visc: { req: cols[3] === '+', min: parseFloat(cols[8]) || null, max: parseFloat(cols[9]) || null },
+                    ph: { req: cols[4] === '+', min: parseFloat(cols[10]) || null, max: parseFloat(cols[11]) || null },
+                    stab: { req: cols[5] === '+' }
                 };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(input.files[0]);
+            });
+        }
+        parseCSV();
+
+        const dl = document.getElementById('products-list');
+        productsList.forEach(p => dl.appendChild(new Option(p, p)));
+
+        let currentSpecs = { dry: {req:true}, visc: {req:true}, ph: {req:true}, stab: {req:true} };
+
+        function updateProductSpecs() {
+            const val = document.getElementById('tst-product').value;
+            const keyMatch = val.match(/^\d+/);
+            const key = keyMatch ? keyMatch[0] : val;
+            currentSpecs = PRODUCT_SPECS_DB[key] || { dry: {req:true}, visc: {req:true}, ph: {req:true}, stab: {req:true} };
+            applySpecs();
         }
 
-        async function analyze(image, side) {
-            document.getElementById('aiStatus').style.display = 'flex';
-            const fields = side === 'front' ? ['taskNum', 'bcFront', 'prodName'] : ['bcBack'];
-            fields.forEach(id => document.getElementById(id).classList.add('ai-pulse'));
+        function applySpecs() {
+            updateInput('dry', '°Bx'); updateInput('visc', 'cm/30s'); updateInput('ph', '');
+            const stabSelect = document.getElementById('tst-stab');
+            if(!currentSpecs.stab.req) {
+                stabSelect.disabled = true; stabSelect.required = false; document.getElementById('info-stab').innerText = "Не потрібно";
+            } else {
+                stabSelect.disabled = false; stabSelect.required = true; document.getElementById('info-stab').innerText = "";
+            }
+        }
 
-            try {
-                const res = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'ai_extract', image, side })
-                });
-                const result = await res.json();
-                if (result.status === 'success') {
-                    const d = result.data;
-                    if (side === 'front') {
-                        if (d.taskNumber) document.getElementById('taskNum').value = d.taskNumber;
-                        if (d.barcode) document.getElementById('bcFront').value = d.barcode;
-                        if (d.product) document.getElementById('prodName').value = d.product;
-                    } else {
-                        if (d.barcode) document.getElementById('bcBack').value = d.barcode;
+        function updateInput(type, unit) {
+            const input = document.getElementById('tst-' + type);
+            const info = document.getElementById('info-' + type);
+            const spec = currentSpecs[type];
+            if (!spec.req) {
+                input.disabled = true; input.value = ""; input.required = false; info.innerText = "Не потрібно"; input.classList.remove('range-alert'); info.className = "range-info range-normal";
+            } else {
+                input.disabled = false; input.required = true;
+                info.innerText = (spec.min && spec.max) ? `Норма: ${spec.min}-${spec.max} ${unit}` : (type==='ph'? "Норма: < 4.5" : "Норма не задана");
+                info.className = "range-info range-normal";
+                if(input.value) checkRange(input, type);
+            }
+        }
+
+        function checkRange(input, type) {
+            const val = parseFloat(input.value);
+            const spec = currentSpecs[type];
+            const info = document.getElementById('info-' + type);
+            if (!spec.req || isNaN(val)) { input.classList.remove('range-alert'); return; }
+            
+            let isErr = false; let limit = "";
+            if (type === 'ph' && !spec.max && val > 4.5) { isErr = true; limit = "< 4.5"; }
+            else if (spec.min && spec.max && (val < spec.min || val > spec.max)) { isErr = true; limit = `${spec.min}-${spec.max}`; }
+
+            if (isErr) {
+                input.classList.add('range-alert'); info.innerText = `⚠️ Невідповідність! Норма: ${limit}`; info.className = "range-info range-error";
+            } else {
+                input.classList.remove('range-alert'); 
+                info.innerText = "✅ В нормі"; info.className = "range-info text-emerald-600";
+            }
+        }
+
+        // --- THEME ---
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+        });
+
+        // --- BUTTON TOGGLES ---
+        function setResult(btn, type, value) {
+            const buttons = btn.parentElement.querySelectorAll('.toggle-btn');
+            buttons.forEach(b => b.classList.remove('active-clean', 'active-dirty'));
+            document.getElementById('tst-' + type).value = value;
+            if (value === '✅') btn.classList.add('active-clean'); else btn.classList.add('active-dirty');
+        }
+
+        // --- PHOTO & AI LOGIC ---
+        let photos = { front: null, back: null };
+        document.getElementById('zone-front').onclick = () => document.getElementById('in-front').click();
+        document.getElementById('zone-back').onclick = () => document.getElementById('in-back').click();
+
+        function processImage(input, side) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.getElementById('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const MAX_SIZE = 1200;
+                        let w = img.width, h = img.height;
+                        if (w > h && w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } 
+                        else if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; }
+                        canvas.width = w; canvas.height = h;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        
+                        const base64 = canvas.toDataURL('image/jpeg', 0.7);
+                        photos[side] = base64;
+                        document.getElementById(`img-${side}`).src = base64;
+                        document.getElementById(`img-${side}`).style.display = 'block';
+                        document.getElementById(`img-${side}`).nextElementSibling.style.display = 'flex';
+                        
+                        analyzeAI(base64, side);
                     }
+                    img.src = e.target.result;
                 }
-            } finally {
-                document.getElementById('aiStatus').style.display = 'none';
-                fields.forEach(id => document.getElementById(id).classList.remove('ai-pulse'));
+                reader.readAsDataURL(input.files[0]);
             }
         }
 
-        async function submit() {
-            const data = {
-                action: 'submit',
-                operator: document.getElementById('operator').value,
-                taskNumber: document.getElementById('taskNum').value,
-                barcodeFront: document.getElementById('bcFront').value,
-                barcodeBack: document.getElementById('bcBack').value,
-                product: document.getElementById('prodName').value,
-                frontImage: photos.front,
-                backImage: photos.back,
-                time: new Date().toLocaleString()
-            };
+        function removePhoto(e, side) {
+            e.stopPropagation(); photos[side] = null;
+            document.getElementById(`img-${side}`).style.display = 'none'; e.target.style.display = 'none';
+        }
 
-            if (!data.operator || !data.taskNumber || !photos.front || !photos.back) {
-                alert("Заповніть оператора та зробіть 2 фото!"); return;
-            }
-
-            document.getElementById('sendBtn').disabled = true;
-            document.getElementById('loader').classList.remove('hidden');
+        async function analyzeAI(base64Image, side) {
+            const ind = document.getElementById('aiIndicator');
+            const fields = side === 'front' ? ['tst-task', 'tst-bcFront', 'tst-product'] : ['tst-bcBack'];
+            ind.style.display = 'flex';
+            fields.forEach(f => document.getElementById(f).classList.add('ai-pulse'));
 
             try {
-                await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-                alert("✅ Звіт відправлено!");
-                location.reload();
-            } catch (e) {
-                alert("Помилка відправки!");
+                // Відправляємо як text/plain щоб уникнути блокування CORS браузером
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'ai_extract', image: base64Image, side: side })
+                });
+                const result = await response.json();
+
+                if (result.status === 'success' && result.data) {
+                    if (side === 'front') {
+                        if (result.data.taskNumber) document.getElementById('tst-task').value = result.data.taskNumber;
+                        if (result.data.barcode) document.getElementById('tst-bcFront').value = result.data.barcode;
+                        if (result.data.product) { 
+                            document.getElementById('tst-product').value = result.data.product; 
+                            updateProductSpecs(); // Автоматично перераховуємо норми!
+                        }
+                    } else {
+                        if (result.data.barcode) document.getElementById('tst-bcBack').value = result.data.barcode;
+                    }
+                    showToast("✨ Дані розпізнано ШІ!");
+                }
+            } catch(e) {
+                console.log(e); showToast("⚠️ Помилка ШІ. Введіть вручну.", true);
+            } finally {
+                ind.style.display = 'none';
+                fields.forEach(f => {
+                    const el = document.getElementById(f);
+                    el.classList.remove('ai-pulse');
+                    if(el.value) el.classList.add('border-violet-500', 'bg-violet-50', 'dark:bg-violet-900/30');
+                });
             }
         }
+
+        async function submitData() {
+            // Перевірка
+            const required = ['tst-employee', 'tst-cookName', 'tst-task', 'tst-product', 'tst-bcFront', 'tst-bcBack', 'tst-color', 'tst-aroma', 'tst-taste', 'tst-consist'];
+            for(let id of required) { if(!document.getElementById(id).value) { showToast("Заповніть всі обов'язкові поля!", true); return; } }
+            if(!photos.front || !photos.back) { showToast("Додайте обидва фото!", true); return; }
+
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true; document.getElementById('btnText').innerText = "Відправка..."; document.getElementById('btnSpinner').classList.remove('hidden');
+
+            const payload = {
+                action: 'submit',
+                time: new Date().toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'}),
+                employee: document.getElementById('tst-employee').value,
+                cook: document.getElementById('tst-cookName').value,
+                taskNumber: document.getElementById('tst-task').value,
+                product: document.getElementById('tst-product').value,
+                barcodeFront: document.getElementById('tst-bcFront').value,
+                barcodeBack: document.getElementById('tst-bcBack').value,
+                color: document.getElementById('tst-color').value,
+                aroma: document.getElementById('tst-aroma').value,
+                taste: document.getElementById('tst-taste').value,
+                consist: document.getElementById('tst-consist').value,
+                dry: document.getElementById('tst-dry').value || "Не потрібно",
+                visc: document.getElementById('tst-visc').value || "Не потрібно",
+                ph: document.getElementById('tst-ph').value || "Не потрібно",
+                stability: document.getElementById('tst-stab').value || "Не потрібно",
+                comment: document.getElementById('tst-comment').value,
+                frontImage: photos.front,
+                backImage: photos.back
+            };
+
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+                showToast("✅ Звіт успішно відправлено!");
+                setTimeout(() => location.reload(), 2000);
+            } catch (e) {
+                showToast("❌ Помилка відправки!", true);
+                btn.disabled = false; document.getElementById('btnText').innerText = "📤 Відправити звіт"; document.getElementById('btnSpinner').classList.add('hidden');
+            }
+        }
+
+        function showToast(msg, err=false) {
+            const t = document.createElement('div');
+            t.className = `p-4 rounded-lg shadow-xl font-bold text-white mb-2 transition-all transform translate-x-full ${err?'bg-red-500':'bg-emerald-500'}`;
+            t.innerText = msg; document.getElementById('toast-container').appendChild(t);
+            requestAnimationFrame(() => t.classList.remove('translate-x-full'));
+            setTimeout(() => { t.classList.add('translate-x-full'); setTimeout(()=>t.remove(),300); }, 3000);
+        }
+        
+        // Збереження оператора
+        if(localStorage.getItem('qc_emp')) document.getElementById('tst-employee').value = localStorage.getItem('qc_emp');
+        document.getElementById('tst-employee').onchange = (e) => localStorage.setItem('qc_emp', e.target.value);
     </script>
 </body>
 </html>
