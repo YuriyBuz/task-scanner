@@ -226,7 +226,7 @@
         // НАЛАШТУВАННЯ ПОСИЛАНЬ ТА КЛЮЧІВ
         // ==========================================
         
-        // Вставте сюди посилання на ваш Google Apps Script
+        // Вставте сюди посилання на ваш Google Apps Script (ТІЛЬКИ ДЛЯ ЗБЕРЕЖЕННЯ В ТАБЛИЦЮ)
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQo6WtVXFHlW58ywEddpqbzhfDeytrsxcBD7srnal0_yPhRBMQcEj7r38sQ61TDu7e5g/exec"; 
         
         // Ключ AI тепер дістається з безпечної пам'яті браузера (локально)
@@ -378,12 +378,11 @@
             document.getElementById(`img-${side}`).style.display = 'none'; e.target.style.display = 'none';
         }
 
-        // 🔥 ПРЯМИЙ ВИКЛИК GOOGLE GEMINI З БРАУЗЕРА 🔥
+        // 🔥 ПРЯМИЙ ВИКЛИК З АВТО-ВИЗНАЧЕННЯМ МОДЕЛІ 🔥
         async function analyzeAIDirect(base64ImageFull, side) {
             const ind = document.getElementById('aiIndicator');
             const fields = side === 'front' ? ['tst-task', 'tst-bcFront', 'tst-product'] : ['tst-bcBack'];
             
-            // Якщо ключ пустий - просимо ввести
             if (!GEMINI_API_KEY) {
                 const newKey = prompt("Для автоматичного розпізнавання введіть ваш API ключ Gemini (це робиться один раз):");
                 if (newKey && newKey.trim() !== "") {
@@ -399,11 +398,37 @@
             fields.forEach(f => document.getElementById(f).classList.add('ai-pulse'));
 
             try {
-                // Відрізаємо data:image/jpeg;base64,
                 const base64Data = base64ImageFull.split(',')[1];
                 
-                // Використовуємо надійну версію flash
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                // 1. АВТОМАТИЧНИЙ ПОШУК ДОСТУПНОЇ МОДЕЛІ ДЛЯ КЛЮЧА
+                let usedModel = "gemini-1.5-flash"; // Базовий варіант
+                try {
+                    const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
+                    if (modelRes.ok) {
+                        const modelData = await modelRes.json();
+                        if (modelData.models) {
+                            const availableModels = modelData.models
+                                .filter(m => m.supportedGenerationMethods?.includes("generateContent") && m.name.includes("gemini"))
+                                .map(m => m.name.replace('models/', ''));
+                            if (availableModels.length > 0) {
+                                // Пріоритет моделей
+                                usedModel = availableModels.find(m => m === 'gemini-1.5-flash-002') ||
+                                            availableModels.find(m => m === 'gemini-1.5-flash-latest') ||
+                                            availableModels.find(m => m === 'gemini-1.5-flash') ||
+                                            availableModels.find(m => m.includes('flash')) ||
+                                            availableModels.find(m => m.includes('pro')) ||
+                                            availableModels[0];
+                            }
+                        }
+                    }
+                } catch(err) {
+                    console.log("Model auto-discovery failed, using default", err);
+                }
+
+                console.log("Використана модель:", usedModel);
+
+                // 2. ЗАПИТ НА ГЕНЕРАЦІЮ
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${usedModel}:generateContent?key=${GEMINI_API_KEY}`;
                 
                 let promptText = "Це документ виробництва соусів (технологічна карта). ";
                 if (side === 'front') {
@@ -422,7 +447,6 @@
                     "generationConfig": { "temperature": 0.1, "responseMimeType": "application/json" }
                 };
 
-                // Прямий запит на сервера Google
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -456,7 +480,7 @@
                 console.error("AI Fetch Error:", e); 
                 showToast("⚠️ Помилка ШІ: " + (e.message || "Невідома помилка"), true);
                 if (e.message.includes("API key not valid")) {
-                    resetApiKey(); // Якщо ключ невірний, просимо ввести знову
+                    resetApiKey(); 
                 }
             } finally {
                 ind.style.display = 'none';
