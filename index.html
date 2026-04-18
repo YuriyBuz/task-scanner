@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#ea580c">
-    <title>Варки соусу | Виробництво</title>
+    <title>Завдання на варку</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- IndexedDB Library для безлімітного офлайну -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
@@ -53,9 +53,6 @@
         
         .ai-pulse { animation: pulse-border 2s infinite; border-color: #8b5cf6 !important; background-color: rgba(139, 92, 246, 0.05) !important; }
         @keyframes pulse-border { 0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); } 50% { box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1); } }
-        
-        /* Видошукач камери */
-        .camera-overlay { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); border: 2px solid rgba(249, 115, 22, 0.8); }
     </style>
 </head>
 <body class="font-sans antialiased">
@@ -74,8 +71,8 @@
             </div>
             
             <div class="flex-1 text-center px-2">
-                <h1 class="text-2xl font-bold text-orange-700 dark:text-orange-500 leading-tight">Варки соусу</h1>
-                <p class="text-violet-600 dark:text-violet-400 text-xs font-bold uppercase tracking-wide">Виробничий Звіт</p>
+                <h1 class="text-xl sm:text-2xl font-bold text-orange-700 dark:text-orange-500 leading-tight">Завдання на варку</h1>
+                <p class="text-violet-600 dark:text-violet-400 text-[10px] font-bold uppercase tracking-wide">AI Сканер маршрутів</p>
             </div>
             <button id="themeToggle" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
@@ -93,18 +90,17 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <div class="photo-zone bg-slate-50 dark:bg-slate-800" onclick="initCamera('front')">
+                        <div class="photo-zone bg-slate-50 dark:bg-slate-800" id="zone-front">
                             <span class="text-[10px] font-bold text-slate-400 uppercase">📷 Лицьова</span>
-                            <!-- Fallback input -->
-                            <input type="file" accept="image/*" capture="environment" class="hidden" id="in-front" onchange="handleFileInput(this, 'front')">
+                            <input type="file" accept="image/*" capture="environment" class="hidden" id="in-front" onchange="processImage(this, 'front')">
                             <img id="img-front">
                             <div class="photo-remove" onclick="removePhoto(event, 'front')">✕</div>
                         </div>
                     </div>
                     <div>
-                        <div class="photo-zone bg-slate-50 dark:bg-slate-800" onclick="initCamera('back')">
+                        <div class="photo-zone bg-slate-50 dark:bg-slate-800" id="zone-back">
                             <span class="text-[10px] font-bold text-slate-400 uppercase">📷 Зворотна</span>
-                            <input type="file" accept="image/*" capture="environment" class="hidden" id="in-back" onchange="handleFileInput(this, 'back')">
+                            <input type="file" accept="image/*" capture="environment" class="hidden" id="in-back" onchange="processImage(this, 'back')">
                             <img id="img-back">
                             <div class="photo-remove" onclick="removePhoto(event, 'back')">✕</div>
                         </div>
@@ -114,21 +110,12 @@
 
             <!-- БЛОК 1: Основне -->
             <div class="bg-violet-50 dark:bg-slate-800/50 p-4 rounded-xl border border-violet-100 dark:border-slate-700 space-y-3">
-                <h3 class="text-[11px] font-bold text-violet-800 dark:text-violet-300 uppercase border-b border-violet-200 dark:border-slate-600 pb-1.5">Співробітники та Завдання</h3>
+                <h3 class="text-[11px] font-bold text-violet-800 dark:text-violet-300 uppercase border-b border-violet-200 dark:border-slate-600 pb-1.5">Виконавець та Завдання</h3>
                 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Контролер *</label>
-                        <select id="tst-employee" required>
-                            <option value="" disabled selected>...</option>
-                            <option value="Соботович Л.М.">Соботович Л.М.</option>
-                            <option value="Огаркова М.В.">Огаркова М.В.</option>
-                            <option value="Попадюк А.М.">Попадюк А.М.</option>
-                        </select>
-                    </div>
+                <div class="grid grid-cols-1 gap-3">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Варник *</label>
-                        <input type="text" id="tst-cook" class="font-bold text-sm" placeholder="..." required>
+                        <input type="text" id="tst-cook" class="font-bold text-sm" placeholder="ПІБ Виконавця" required>
                     </div>
                 </div>
 
@@ -196,44 +183,25 @@
                 </div>
             </div>
 
-            <!-- ШК Сховані у спойлер для економії місця, якщо потрібно перевірити -->
-            <details class="text-[10px] text-slate-500">
-                <summary class="cursor-pointer font-bold mb-2">Деталі штрих-кодів</summary>
-                <div class="grid grid-cols-2 gap-3 mt-2">
-                    <div><label class="block mb-1">ШК (Лице)</label><input type="text" id="tst-bcFront" class="font-mono text-xs"></div>
-                    <div><label class="block mb-1">ШК (Зворот)</label><input type="text" id="tst-bcBack" class="font-mono text-xs"></div>
-                </div>
-            </details>
-
-            <button onclick="showPreview()" id="btnSubmit" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2 text-base disabled:opacity-50">
-                <span id="btnText">📤 Відправити звіт</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- МОДАЛЬНЕ ВІКНО КАМЕРИ -->
-    <div id="cameraModal" class="fixed inset-0 bg-black z-[100] hidden flex-col">
-        <div class="relative w-full h-full flex-1 overflow-hidden bg-black">
-            <video id="cameraVideo" autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
-            <!-- Гайдлайн для видошукача -->
-            <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
-                <div class="w-full h-[70%] border-2 border-orange-500/80 rounded-xl relative">
-                    <!-- Затінення навколо -->
-                    <div class="absolute w-[200vw] h-[200vh] -left-[50vw] -top-[50vh] camera-overlay rounded-xl border-0"></div>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <span class="text-white/60 font-bold text-sm tracking-widest uppercase bg-black/40 px-3 py-1 rounded">Наведіть на документ</span>
+            <!-- ОБОВ'ЯЗКОВІ ШТРИХ-КОДИ -->
+            <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                <h3 class="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase border-b border-slate-200 dark:border-slate-600 pb-1.5">Штрих-коди (Обов'язково)</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">ШК (Лице) *</label>
+                        <input type="text" id="tst-bcFront" class="font-mono font-bold text-xs bg-white dark:bg-slate-900" placeholder="13 цифр..." required>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">ШК (Зворот) *</label>
+                        <input type="text" id="tst-bcBack" class="font-mono font-bold text-xs bg-white dark:bg-slate-900" placeholder="13 цифр..." required>
                     </div>
                 </div>
+                <p class="text-[9px] text-slate-400 font-medium">Звіт не буде відправлено без наявності обох штрих-кодів. Якщо ШІ їх не знайшов — введіть вручну.</p>
             </div>
-        </div>
-        <div class="h-28 bg-black flex items-center justify-around px-8 pb-4 shrink-0 border-t border-slate-800">
-            <button onclick="closeCamera()" class="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center text-white active:scale-90 transition-transform">
-                ✕
+
+            <button onclick="showPreview()" id="btnSubmit" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2 text-base disabled:opacity-50">
+                <span id="btnText">📤 Відправити звіт</span>
             </button>
-            <button onclick="takeSnapshot()" class="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform">
-                <div class="w-16 h-16 bg-white rounded-full"></div>
-            </button>
-            <div class="w-14 h-14"></div> <!-- Spacer -->
         </div>
     </div>
 
@@ -241,7 +209,7 @@
     <div id="previewModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-700">
             <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                <h2 class="text-base font-black text-slate-800 dark:text-white text-center uppercase tracking-wide text-orange-600">Перевірка даних</h2>
+                <h2 id="previewTitle" class="text-base font-black text-slate-800 dark:text-white text-center uppercase tracking-wide text-orange-600">Завдання на варку</h2>
             </div>
             <div id="previewContent" class="p-5 overflow-y-auto text-sm space-y-2.5 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800">
                 <!-- Дані генеруються в JS -->
@@ -278,7 +246,7 @@
         // ==========================================
         // НАЛАШТУВАННЯ
         // ==========================================
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzBoqP4bE7uiggwJ_5Cst33Sagqd-IoACzFb5ptWhtAXJhm3rg5yLLLN78hhk26DHxgXg/exec"; 
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6BUCE67Uny0REOw8Joop676fHt1tNxMJXiRIT-VKPRyMPIP6003Byyn7vu-fI3q6rxg/exec"; 
         let GEMINI_API_KEY = localStorage.getItem('gemini_api_key_qc') || "";
         let currentPayload = null;
 
@@ -313,7 +281,7 @@
 
         // --- Захист API ключа ---
         function resetApiKey() {
-            const pass = prompt("Введіть пароль доступу до налаштувань:");
+            const pass = prompt("Введіть пароль доступу до налаштувань ШІ:");
             if (pass !== "0987") { if(pass !== null) showToast("❌ Невірний пароль", true); return; }
             
             const newKey = prompt("Введіть новий API ключ Gemini:", GEMINI_API_KEY);
@@ -330,78 +298,43 @@
             localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         });
 
-        // --- КАМЕРА ТА ФОТО ---
+        // --- ФОТО ТА КАМЕРА ---
         let photos = { front: null, back: null };
-        let currentStream = null;
-        let currentSideForCamera = null;
+        
+        document.getElementById('zone-front').onclick = () => document.getElementById('in-front').click();
+        document.getElementById('zone-back').onclick = () => document.getElementById('in-back').click();
 
-        async function initCamera(side) {
-            currentSideForCamera = side;
-            // Спробуємо відкрити кастомну камеру
-            try {
-                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                const videoEl = document.getElementById('cameraVideo');
-                videoEl.srcObject = currentStream;
-                document.getElementById('cameraModal').classList.remove('hidden');
-                document.getElementById('cameraModal').classList.add('flex');
-            } catch(err) {
-                console.warn("Камера недоступна, використовуємо системний загрузчик:", err);
-                // Фолбек: імітуємо клік по інпуту
-                document.getElementById(`in-${side}`).click();
-            }
-        }
-
-        function closeCamera() {
-            if(currentStream) { currentStream.getTracks().forEach(t => t.stop()); currentStream = null; }
-            document.getElementById('cameraModal').classList.add('hidden');
-            document.getElementById('cameraModal').classList.remove('flex');
-        }
-
-        function takeSnapshot() {
-            const video = document.getElementById('cameraVideo');
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            const base64Data = canvas.toDataURL('image/jpeg', 0.8);
-            closeCamera();
-            processBase64Image(base64Data, currentSideForCamera);
-        }
-
-        // Для файлового інпуту (фолбек)
-        function handleFileInput(input, side) {
+        function processImage(input, side) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = e => processBase64Image(e.target.result, side);
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.getElementById('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const MAX_SIZE = 1400; 
+                        let w = img.width, h = img.height;
+                        if (w > h && w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } 
+                        else if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; }
+                        canvas.width = w; canvas.height = h;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        
+                        const base64Full = canvas.toDataURL('image/jpeg', 0.8);
+                        photos[side] = base64Full;
+                        document.getElementById(`img-${side}`).src = base64Full;
+                        document.getElementById(`img-${side}`).style.display = 'block';
+                        document.getElementById(`img-${side}`).nextElementSibling.style.display = 'flex';
+                        
+                        if(navigator.onLine) {
+                            analyzeAIDirect(base64Full, side);
+                        } else {
+                            showToast("⚠️ Немає інтернету. ШІ недоступний.", true);
+                        }
+                    }
+                    img.src = e.target.result;
+                }
                 reader.readAsDataURL(input.files[0]);
             }
-        }
-
-        function processBase64Image(dataUrl, side) {
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.getElementById('canvas');
-                const ctx = canvas.getContext('2d');
-                const MAX_SIZE = 1400; 
-                let w = img.width, h = img.height;
-                if (w > h && w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } 
-                else if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; }
-                canvas.width = w; canvas.height = h;
-                ctx.drawImage(img, 0, 0, w, h);
-                
-                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                photos[side] = compressedBase64;
-                document.getElementById(`img-${side}`).src = compressedBase64;
-                document.getElementById(`img-${side}`).style.display = 'block';
-                document.getElementById(`img-${side}`).nextElementSibling.style.display = 'flex';
-                
-                if(navigator.onLine) {
-                    analyzeAIDirect(compressedBase64, side);
-                } else {
-                    showToast("⚠️ Немає інтернету. ШІ недоступний.", true);
-                }
-            }
-            img.src = dataUrl;
         }
 
         function removePhoto(e, side) {
@@ -423,7 +356,7 @@
             }
         }
 
-        // 🔥 ВИКЛИК GEMINI БЕЗ СХЕМИ ДЛЯ МАКСИМАЛЬНОЇ СУМІСНОСТІ 🔥
+        // 🔥 ВИКЛИК GEMINI 🔥
         async function analyzeAIDirect(base64ImageFull, side) {
             const ind = document.getElementById('aiIndicator');
             const fields = side === 'front' 
@@ -431,7 +364,7 @@
                 : ['tst-bcBack', 'tst-actualDate'];
             
             if (!GEMINI_API_KEY) {
-                showToast("⚠️ Ключ ШІ не налаштовано. Зверніться до адміністратора.", true); return;
+                showToast("⚠️ Ключ ШІ не налаштовано. Натисніть 'Налашт. ШІ'.", true); return;
             }
 
             ind.style.display = 'flex';
@@ -486,7 +419,6 @@
                 const data = await response.json();
                 let resultText = data.candidates[0].content.parts[0].text;
                 
-                // Надійний пошук JSON блоку, навіть якщо ШІ додав зайвий текст
                 let jsonMatch = resultText.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
                     resultText = jsonMatch[0];
@@ -569,18 +501,20 @@
         function showPreview() {
             if (GOOGLE_SCRIPT_URL.includes("ВСТАВТЕ_ПОСИЛАННЯ")) { showToast("⚠️ Замініть GOOGLE_SCRIPT_URL в коді!", true); return; }
 
-            const emp = document.getElementById('tst-employee').value;
+            const cook = document.getElementById('tst-cook').value;
             const task = document.getElementById('tst-task').value;
             const sauce = document.getElementById('tst-sauce').value;
+            const bcFront = document.getElementById('tst-bcFront').value;
+            const bcBack = document.getElementById('tst-bcBack').value;
             
-            if(!emp) { showToast("Оберіть контролера!", true); return; }
+            if(!cook) { showToast("Вкажіть Варника!", true); return; }
             if(!task || !sauce) { showToast("Заповніть номер завдання та назву соусу!", true); return; }
+            if(!bcFront || !bcBack) { showToast("⚠️ Штрих-коди обов'язкові! Введіть їх вручну, якщо ШІ не знайшов.", true, 4000); return; }
             if(!photos.front || !photos.back) { showToast("Додайте обидва фото!", true); return; }
 
             currentPayload = {
                 action: 'submit',
                 time: new Date().toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'}),
-                employee: emp,
                 taskNumber: task,
                 sauceName: sauce,
                 productName: document.getElementById('tst-product').value,
@@ -591,20 +525,19 @@
                 packaging: document.getElementById('tst-packaging').value,
                 planDate: document.getElementById('tst-planDate').value,
                 actualDate: document.getElementById('tst-actualDate').value,
-                cook: document.getElementById('tst-cook').value,
-                barcodeFront: document.getElementById('tst-bcFront').value,
-                barcodeBack: document.getElementById('tst-bcBack').value,
+                cook: cook,
+                barcodeFront: bcFront,
+                barcodeBack: bcBack,
                 frontImage: photos.front,
                 backImage: photos.back
             };
 
+            document.getElementById('previewTitle').innerText = `Завдання на варку №${task}`;
+
             const html = `
                 <div class="grid grid-cols-[90px_1fr] gap-x-2 gap-y-3">
-                    <span class="text-slate-400 font-bold uppercase text-[10px] self-center">Контролер:</span> 
-                    <span class="font-bold text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">${currentPayload.employee}</span>
-                    
                     <span class="text-slate-400 font-bold uppercase text-[10px] self-center">Завдання:</span> 
-                    <span class="font-black text-orange-600 text-base bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded">${currentPayload.taskNumber}</span>
+                    <span class="font-black text-orange-600 text-base bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded">№ ${currentPayload.taskNumber}</span>
                     
                     <span class="text-slate-400 font-bold uppercase text-[10px] self-center">Соус:</span> 
                     <span class="font-bold text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">${currentPayload.sauceName}</span>
@@ -614,6 +547,12 @@
                     
                     <span class="text-slate-400 font-bold uppercase text-[10px] self-center">Варник:</span> 
                     <span class="font-bold text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">${currentPayload.cook || '-'}</span>
+                    
+                    <span class="text-slate-400 font-bold uppercase text-[10px] self-center">ШК Лице:</span> 
+                    <span class="font-mono text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">${currentPayload.barcodeFront}</span>
+                    
+                    <span class="text-slate-400 font-bold uppercase text-[10px] self-center">ШК Зворот:</span> 
+                    <span class="font-mono text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">${currentPayload.barcodeBack}</span>
                 </div>
             `;
             document.getElementById('previewContent').innerHTML = html;
@@ -632,8 +571,12 @@
             const spinner = document.getElementById('confirmSpinner');
             btnText.innerText = "Відправка..."; spinner.classList.remove('hidden');
 
-            const empName = currentPayload.employee.split(' ')[1] ? currentPayload.employee.split(' ')[0] + " " + currentPayload.employee.split(' ')[1] : currentPayload.employee;
-            const successMessage = `✅ Шановний(а) ${empName}, дякуємо вам за зварений соус і вчасно просканований документ!`;
+            // Форматування ПІБ для привітання (беремо Прізвище та Ініціали, якщо є)
+            const cookName = currentPayload.cook.split(' ').length > 1 
+                ? currentPayload.cook.split(' ')[0] + " " + currentPayload.cook.split(' ')[1] 
+                : currentPayload.cook;
+            
+            const successMessage = `✅ Шановний(а) ${cookName}, дякуємо вам за зварений соус і вчасно просканований документ!`;
 
             try {
                 if(!navigator.onLine) throw new Error("Offline");
@@ -645,8 +588,8 @@
                 
                 closePreview();
                 await addToHistory(currentPayload.taskNumber, currentPayload.sauceName);
-                showToast(successMessage, false, 2500);
-                setTimeout(() => location.reload(), 2500);
+                showToast(successMessage, false, 4000);
+                setTimeout(() => location.reload(), 3000);
 
             } catch (e) {
                 // Надійне офлайн збереження через IndexedDB
@@ -656,8 +599,8 @@
                 
                 closePreview();
                 await addToHistory(currentPayload.taskNumber, currentPayload.sauceName);
-                showToast(`⚠️ Немає інтернету. Звіт збережено в пам'ять! Шановний(а) ${empName}, дякуємо...`, true, 3000);
-                setTimeout(() => location.reload(), 3000);
+                showToast(`⚠️ Немає інтернету. Звіт збережено в пам'ять! Шановний(а) ${cookName}, дякуємо!`, true, 4000);
+                setTimeout(() => location.reload(), 4000);
             } finally {
                 btnText.innerText = "Підтвердити"; spinner.classList.add('hidden');
             }
@@ -671,8 +614,9 @@
             setTimeout(() => { t.classList.add('translate-x-full'); setTimeout(()=>t.remove(),300); }, duration);
         }
         
-        if(localStorage.getItem('qc_emp')) document.getElementById('tst-employee').value = localStorage.getItem('qc_emp');
-        document.getElementById('tst-employee').onchange = (e) => localStorage.setItem('qc_emp', e.target.value);
+        // Збереження Варника в пам'ять
+        if(localStorage.getItem('qc_cook')) document.getElementById('tst-cook').value = localStorage.getItem('qc_cook');
+        document.getElementById('tst-cook').onchange = (e) => localStorage.setItem('qc_cook', e.target.value);
     </script>
 </body>
 </html>
