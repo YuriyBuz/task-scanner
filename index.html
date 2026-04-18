@@ -423,7 +423,7 @@
             }
         }
 
-        // 🔥 ВИКЛИК GEMINI З JSON SCHEMA 🔥
+        // 🔥 ВИКЛИК GEMINI БЕЗ СХЕМИ ДЛЯ МАКСИМАЛЬНОЇ СУМІСНОСТІ 🔥
         async function analyzeAIDirect(base64ImageFull, side) {
             const ind = document.getElementById('aiIndicator');
             const fields = side === 'front' 
@@ -439,43 +439,59 @@
 
             try {
                 const base64Data = base64ImageFull.split(',')[1];
-                let usedModel = "gemini-1.5-flash"; 
                 
+                // Авто-визначення моделі
+                let usedModel = "gemini-1.5-flash"; 
+                try {
+                    const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
+                    if (modelRes.ok) {
+                        const modelData = await modelRes.json();
+                        if (modelData.models) {
+                            const availableModels = modelData.models
+                                .filter(m => m.supportedGenerationMethods?.includes("generateContent") && m.name.includes("gemini"))
+                                .map(m => m.name.replace('models/', ''));
+                            if (availableModels.length > 0) {
+                                usedModel = availableModels.find(m => m === 'gemini-1.5-flash-002') ||
+                                            availableModels.find(m => m === 'gemini-1.5-flash-latest') ||
+                                            availableModels.find(m => m === 'gemini-1.5-flash') ||
+                                            availableModels[0];
+                            }
+                        }
+                    }
+                } catch(err) { console.log("Model auto-discovery failed", err); }
+
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${usedModel}:generateContent?key=${GEMINI_API_KEY}`;
                 
-                let promptText = "Це документ виробництва. Знайди дані і поверни їх згідно схеми. Якщо даних немає, повертай порожній рядок. ";
-                let responseSchemaProperties = {};
-
+                let promptText = "Це документ виробництва. ";
                 if (side === 'front') {
-                    promptText += `ЛИЦЬОВА СТОРОНА: Номер завдання (напр. 9898), Назва соусу, Назва продукції, Планова кількість (напр. 1700 кг), Варочний котел, Лінія розливу, Маркування, Упаковка, Планова дата, ПІБ Варника, Штрих-код (13 цифр).`;
-                    responseSchemaProperties = {
-                        "taskNumber": { "type": "STRING" }, "sauceName": { "type": "STRING" }, "productName": { "type": "STRING" },
-                        "planQty": { "type": "STRING" }, "kettle": { "type": "STRING" }, "filling": { "type": "STRING" },
-                        "labeling": { "type": "STRING" }, "packaging": { "type": "STRING" }, "planDate": { "type": "STRING" },
-                        "cook": { "type": "STRING" }, "barcodeFront": { "type": "STRING" }
-                    };
+                    promptText += `Прочитай ЛИЦЬОВУ сторону. Знайди: 1) Номер завдання (напр. 9898); 2) Назву соусу (напр. '1108 Теріякі Bonsai'); 3) Назву продукції; 4) Планову кількість (напр. 1700 кг або 1520 шт); 5) Варочний котел (напр. ВК 04); 6) Лінію розливу; 7) Маркування; 8) Упаковку; 9) Планову дату варки; 10) ПІБ Варника (напр. 'Солдатова І.В.'); 11) Штрих-код (13 цифр). Поверни ЛИШЕ чистий JSON формат: {"taskNumber": "9898", "sauceName": "...", "productName": "...", "planQty": "...", "kettle": "...", "filling": "...", "labeling": "...", "packaging": "...", "planDate": "...", "cook": "...", "barcodeFront": "..."}. Якщо чогось не видно, пиши null.`;
                 } else {
-                    promptText += `ЗВОРОТНА СТОРОНА: Штрих-код (13 цифр), Фактична дата варки (зазвичай внизу біля підпису, напр. '22.03.2026').`;
-                    responseSchemaProperties = {
-                        "barcodeBack": { "type": "STRING" }, "actualDate": { "type": "STRING" }
-                    };
+                    promptText += `Прочитай ЗВОРОТНУ сторону. Знайди: 1) Штрих-код (13 цифр); 2) Фактичну дату варки (зазвичай внизу біля підпису, напр. '22.03.2026'). Поверни ЛИШЕ чистий JSON формат: {"barcodeBack": "...", "actualDate": "..."}.`;
                 }
 
                 const payload = {
                     "contents": [{ "parts": [ { "text": promptText }, { "inline_data": { "mime_type": "image/jpeg", "data": base64Data } } ] }],
                     "generationConfig": { 
                         "temperature": 0.1, 
-                        "responseMimeType": "application/json",
-                        "responseSchema": { "type": "OBJECT", "properties": responseSchemaProperties }
+                        "responseMimeType": "application/json"
                     }
                 };
 
                 const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) throw new Error("HTTP Error " + response.status);
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || "HTTP Error " + response.status);
+                }
 
                 const data = await response.json();
                 let resultText = data.candidates[0].content.parts[0].text;
-                // Завдяки Schema, результат гарантовано буде правильним JSON
+                
+                // Надійний пошук JSON блоку, навіть якщо ШІ додав зайвий текст
+                let jsonMatch = resultText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    resultText = jsonMatch[0];
+                }
+                
                 const resultObj = JSON.parse(resultText);
 
                 if (side === 'front') {
@@ -500,7 +516,8 @@
                 showToast("✨ Маршрут розпізнано ШІ!");
 
             } catch(e) {
-                console.error("AI Error:", e); showToast("⚠️ Помилка ШІ. Введіть дані вручну.", true);
+                console.error("AI Error:", e); 
+                showToast("⚠️ Помилка ШІ: " + (e.message || "Невідома помилка").substring(0, 50), true, 5000);
             } finally {
                 ind.style.display = 'none';
                 fields.forEach(f => {
