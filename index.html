@@ -2,15 +2,20 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Варки соусу | QC AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ea580c">
+    <title>Варки соусу | Виробництво</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- IndexedDB Library для безлімітного офлайну -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
-            theme: {
-                extend: { colors: { slate: { 50: '#f8fafc', 800: '#1e293b', 900: '#0f172a' } } }
-            }
+            theme: { extend: { colors: { slate: { 50: '#f8fafc', 800: '#1e293b', 900: '#0f172a' } } } }
+        }
+        // Завантаження збереженої теми
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
         }
     </script>
     <style>
@@ -21,107 +26,85 @@
         
         input, select, textarea {
             background-color: transparent !important;
-            border: 2px solid #cbd5e1 !important;
-            padding: 1rem !important;
-            border-radius: 0.5rem !important;
+            border: 1px solid #cbd5e1 !important;
+            padding: 0.5rem 0.75rem !important; 
+            border-radius: 0.375rem !important;
             width: 100%;
-            font-size: 1.125rem !important;
+            font-size: 0.95rem !important; 
             color: inherit;
+            transition: all 0.2s ease;
         }
         .dark input, .dark select, .dark textarea { border-color: #475569 !important; background-color: #1e293b !important; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: #f97316 !important; box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2); }
-        input:disabled, select:disabled { opacity: 0.6; cursor: not-allowed; }
         
-        .toggle-btn { transition: all 0.2s; border: 2px solid #e2e8f0; color: #64748b; }
-        .dark .toggle-btn { border-color: #475569; color: #94a3b8; }
-        .toggle-btn.active-clean { background-color: #10b981; border-color: #10b981; color: white; }
-        .toggle-btn.active-dirty { background-color: #ef4444; border-color: #ef4444; color: white; }
+        /* Класи для попередження (валідації) */
+        .input-warning { border-color: #eab308 !important; background-color: #fef9c3 !important; color: #854d0e !important; box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.2); }
+        .dark .input-warning { background-color: rgba(161, 98, 7, 0.2) !important; color: #fde047 !important; }
 
-        .range-info { font-size: 0.75rem; margin-top: 0.25rem; font-weight: 600; }
-        .range-normal { color: #64748b; }
-        .dark .range-normal { color: #94a3b8; }
-        .range-error { color: #dc2626; animation: blink 1s infinite; font-weight: bold; }
-        .range-alert { background-color: #fee2e2 !important; border-color: #ef4444 !important; color: #991b1b !important; }
-        
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        
-        .spinner { border: 3px solid rgba(0,0,0,0.1); width: 24px; height: 24px; border-radius: 50%; border-left-color: #f97316; animation: spin 1s linear infinite; }
+        .spinner { border: 3px solid rgba(0,0,0,0.1); width: 20px; height: 20px; border-radius: 50%; border-left-color: #f97316; animation: spin 1s linear infinite; }
         .spinner-white { border-color: rgba(255,255,255,0.3); border-top-color: #fff; }
-        .spinner-ai { border: 3px solid rgba(139, 92, 246, 0.3); border-top: 3px solid #8b5cf6; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        .spinner-ai { border: 3px solid rgba(139, 92, 246, 0.3); border-top: 3px solid #8b5cf6; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        .photo-zone { border: 2px dashed #cbd5e1; border-radius: 0.75rem; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; cursor: pointer; position: relative; overflow: hidden; min-height: 120px; }
+        .photo-zone { border: 2px dashed #cbd5e1; border-radius: 0.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; cursor: pointer; position: relative; overflow: hidden; min-height: 100px; }
         .dark .photo-zone { border-color: #475569; background-color: #1e293b; }
         .photo-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 10; display: none; }
-        .photo-remove { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 20; background: #ef4444; color: white; border-radius: 50%; width: 28px; height: 28px; display: none; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer; }
+        .photo-remove { position: absolute; top: 0.25rem; right: 0.25rem; z-index: 20; background: #ef4444; color: white; border-radius: 50%; width: 24px; height: 24px; display: none; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer; font-size: 12px; }
         
         .ai-pulse { animation: pulse-border 2s infinite; border-color: #8b5cf6 !important; background-color: rgba(139, 92, 246, 0.05) !important; }
-        @keyframes pulse-border { 0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); } 50% { box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1); } }
+        @keyframes pulse-border { 0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); } 50% { box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1); } }
+        
+        /* Видошукач камери */
+        .camera-overlay { box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); border: 2px solid rgba(249, 115, 22, 0.8); }
     </style>
 </head>
 <body class="font-sans antialiased">
     
-    <div id="toast-container" class="fixed top-4 right-4 z-[2000] flex flex-col gap-2"></div>
+    <div id="toast-container" class="fixed top-4 right-4 z-[2000] flex flex-col gap-2 pointer-events-none"></div>
 
-    <div class="container mx-auto max-w-3xl p-4 sm:p-6">
-        <header class="flex items-center justify-between mb-6">
-            <button onclick="resetApiKey()" class="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" title="Змінити API ключ">
-                🔑 Змінити ключ
-            </button>
-            <div class="flex-1 text-center">
-                <h1 class="text-3xl font-bold text-orange-700 dark:text-orange-500">Варки соусу</h1>
-                <p class="text-violet-600 dark:text-violet-400 text-sm font-bold mt-1 uppercase tracking-wide">QC + AI Розпізнавання</p>
+    <div class="container mx-auto max-w-3xl p-3 sm:p-4">
+        <header class="flex items-center justify-between mb-4">
+            <div class="flex flex-col gap-1">
+                <button onclick="resetApiKey()" class="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors text-left" title="Змінити API ключ">
+                    🔑 Налашт. ШІ
+                </button>
+                <button onclick="openHistory()" class="text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Історія
+                </button>
             </div>
-            <button id="themeToggle" class="p-3 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            
+            <div class="flex-1 text-center px-2">
+                <h1 class="text-2xl font-bold text-orange-700 dark:text-orange-500 leading-tight">Варки соусу</h1>
+                <p class="text-violet-600 dark:text-violet-400 text-xs font-bold uppercase tracking-wide">Виробничий Звіт</p>
+            </div>
+            <button id="themeToggle" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
             </button>
         </header>
 
-        <div class="card p-6 rounded-lg shadow-lg border border-orange-100 dark:border-slate-700 space-y-6">
+        <div class="card p-4 sm:p-5 rounded-xl shadow-lg border border-orange-100 dark:border-slate-700 space-y-4">
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Контролер *</label>
-                    <select id="tst-employee" required class="p-2">
-                        <option value="" disabled selected>Оберіть...</option>
-                        <option value="Соботович Л.М.">Соботович Л.М.</option>
-                        <option value="Огаркова М.В.">Огаркова М.В.</option>
-                        <option value="Попадюк А.М.">Попадюк А.М.</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">Варник *</label>
-                    <select id="tst-cookName" required class="p-2">
-                        <option value="" disabled selected>Оберіть...</option>
-                        <option value="Загура Іван Борисович">Загура Іван Борисович</option>
-                        <option value="Солдатова Ірина Володимирівна">Солдатова Ірина Володимирівна</option>
-                        <option value="Садиріна Ольга Анатоліївна">Садиріна Ольга Анатоліївна</option>
-                    </select>
-                </div>
-            </div>
-
-            <hr class="border-slate-200 dark:border-slate-700">
-
             <div>
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="font-bold text-slate-700 dark:text-slate-300 uppercase">Фотографії (AI сканування) *</h3>
-                    <div id="aiIndicator" class="hidden items-center gap-2 text-xs font-bold text-violet-600 bg-violet-100 dark:bg-violet-900/30 px-3 py-1 rounded-full">
-                        <div class="spinner-ai"></div> ШІ аналізує...
+                <div class="flex items-center justify-between mb-1.5">
+                    <h3 class="font-bold text-xs text-slate-700 dark:text-slate-300 uppercase">Фото документів *</h3>
+                    <div id="aiIndicator" class="hidden items-center gap-1 text-[10px] font-bold text-violet-600 bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 rounded-full">
+                        <div class="spinner-ai"></div> Читаю...
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <div class="photo-zone bg-slate-50 dark:bg-slate-800" id="zone-front">
-                            <span class="text-xs font-bold text-slate-400">📷 Лицьова</span>
-                            <input type="file" accept="image/*" capture="environment" class="hidden" id="in-front" onchange="processImage(this, 'front')">
+                        <div class="photo-zone bg-slate-50 dark:bg-slate-800" onclick="initCamera('front')">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">📷 Лицьова</span>
+                            <!-- Fallback input -->
+                            <input type="file" accept="image/*" capture="environment" class="hidden" id="in-front" onchange="handleFileInput(this, 'front')">
                             <img id="img-front">
                             <div class="photo-remove" onclick="removePhoto(event, 'front')">✕</div>
                         </div>
                     </div>
                     <div>
-                        <div class="photo-zone bg-slate-50 dark:bg-slate-800" id="zone-back">
-                            <span class="text-xs font-bold text-slate-400">📷 Зворотна</span>
-                            <input type="file" accept="image/*" capture="environment" class="hidden" id="in-back" onchange="processImage(this, 'back')">
+                        <div class="photo-zone bg-slate-50 dark:bg-slate-800" onclick="initCamera('back')">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase">📷 Зворотна</span>
+                            <input type="file" accept="image/*" capture="environment" class="hidden" id="in-back" onchange="handleFileInput(this, 'back')">
                             <img id="img-back">
                             <div class="photo-remove" onclick="removePhoto(event, 'back')">✕</div>
                         </div>
@@ -129,93 +112,163 @@
                 </div>
             </div>
 
-            <div class="bg-violet-50 dark:bg-slate-800/50 p-4 rounded-xl border border-violet-100 dark:border-slate-700">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <!-- БЛОК 1: Основне -->
+            <div class="bg-violet-50 dark:bg-slate-800/50 p-4 rounded-xl border border-violet-100 dark:border-slate-700 space-y-3">
+                <h3 class="text-[11px] font-bold text-violet-800 dark:text-violet-300 uppercase border-b border-violet-200 dark:border-slate-600 pb-1.5">Співробітники та Завдання</h3>
+                
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">№ Завдання *</label>
-                        <input type="number" id="tst-task" class="font-mono font-bold" required>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Контролер *</label>
+                        <select id="tst-employee" required>
+                            <option value="" disabled selected>...</option>
+                            <option value="Соботович Л.М.">Соботович Л.М.</option>
+                            <option value="Огаркова М.В.">Огаркова М.В.</option>
+                            <option value="Попадюк А.М.">Попадюк А.М.</option>
+                        </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Продукт *</label>
-                        <input type="text" id="tst-product" list="products-list" class="font-bold" required oninput="updateProductSpecs()">
-                        <datalist id="products-list"></datalist>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Варник *</label>
+                        <input type="text" id="tst-cook" class="font-bold text-sm" placeholder="..." required>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Штрих-код (Лице) *</label>
-                        <input type="text" id="tst-bcFront" class="font-mono text-sm" required>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">№ Завдання *</label>
+                        <input type="number" id="tst-task" class="font-mono font-bold text-base" required>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Штрих-код (Зворот) *</label>
-                        <input type="text" id="tst-bcBack" class="font-mono text-sm" required>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 flex justify-between">
+                            <span>План (кг/шт) *</span>
+                            <span id="qtyWarning" class="text-yellow-600 hidden">⚠️ Перевірте!</span>
+                        </label>
+                        <input type="text" id="tst-planQty" class="font-bold text-base transition-colors" required oninput="validateQty(this.value)">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Назва соусу *</label>
+                        <input type="text" id="tst-sauce" class="font-bold text-base text-orange-700 dark:text-orange-400" required>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Назва продукції (Фасування)</label>
+                        <textarea id="tst-product" rows="1" class="font-bold text-xs"></textarea>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-orange-500 text-white p-2 rounded-lg text-center font-bold uppercase tracking-wide">Органолептика</div>
-            
-            <div class="space-y-3">
-                <div class="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
-                    <label class="text-sm font-bold w-1/3">Колір</label>
-                    <div class="flex gap-2 w-2/3"><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'color', '✅')">✅</button><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'color', '❌')">❌</button></div>
-                    <input type="hidden" id="tst-color" required>
+            <!-- БЛОК 2: Маршрут -->
+            <div class="bg-blue-50 dark:bg-slate-800/50 p-4 rounded-xl border border-blue-100 dark:border-slate-700 space-y-3">
+                <h3 class="text-[11px] font-bold text-blue-800 dark:text-blue-300 uppercase border-b border-blue-200 dark:border-slate-600 pb-1.5">Обладнання та Дати</h3>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Варочний котел</label>
+                        <input type="text" id="tst-kettle" class="font-bold text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Лінія розливу</label>
+                        <input type="text" id="tst-filling" class="text-xs font-medium">
+                    </div>
                 </div>
-                <div class="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
-                    <label class="text-sm font-bold w-1/3">Аромат</label>
-                    <div class="flex gap-2 w-2/3"><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'aroma', '✅')">✅</button><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'aroma', '❌')">❌</button></div>
-                    <input type="hidden" id="tst-aroma" required>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Маркування</label>
+                        <input type="text" id="tst-labeling" class="text-xs font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Упаковка</label>
+                        <input type="text" id="tst-packaging" class="text-xs font-medium">
+                    </div>
                 </div>
-                <div class="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
-                    <label class="text-sm font-bold w-1/3">Смак</label>
-                    <div class="flex gap-2 w-2/3"><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'taste', '✅')">✅</button><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'taste', '❌')">❌</button></div>
-                    <input type="hidden" id="tst-taste" required>
-                </div>
-                <div class="flex items-center justify-between gap-2">
-                    <label class="text-sm font-bold w-1/3">Консистенція</label>
-                    <div class="flex gap-2 w-2/3"><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'consist', '✅')">✅</button><button type="button" class="flex-1 py-2 rounded-lg font-bold text-sm toggle-btn" onclick="setResult(this, 'consist', '❌')">❌</button></div>
-                    <input type="hidden" id="tst-consist" required>
-                </div>
-            </div>
-            
-            <div class="bg-orange-500 text-white p-2 rounded-lg text-center font-bold uppercase tracking-wide">Фізико-хімія</div>
-            
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Сухі речовини, °Bx</label>
-                    <input type="number" step="0.1" id="tst-dry" oninput="checkRange(this, 'dry')" required>
-                    <div id="info-dry" class="range-info range-normal"></div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Bostwick, cm/30s</label>
-                    <input type="number" step="0.1" id="tst-visc" oninput="checkRange(this, 'visc')" required>
-                    <div id="info-visc" class="range-info range-normal"></div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">pH</label>
-                    <input type="number" step="0.01" id="tst-ph" oninput="checkRange(this, 'ph')" required>
-                    <div id="info-ph" class="range-info range-normal"></div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Центрифугування</label>
-                    <select id="tst-stab" required>
-                        <option value="" disabled selected>...</option>
-                        <option value="+">✅ Стійка</option>
-                        <option value="-">⚠️ Не стійка</option>
-                    </select>
-                    <div id="info-stab" class="range-info range-normal mt-1"></div>
+
+                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-blue-200 dark:border-slate-600">
+                    <div>
+                        <label class="block text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase mb-1">Планова дата</label>
+                        <input type="text" id="tst-planDate" class="font-bold text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase mb-1">Фактична (Зворот)</label>
+                        <input type="text" id="tst-actualDate" class="font-bold text-xs bg-emerald-50 dark:bg-emerald-900/20">
+                    </div>
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Коментар</label>
-                <textarea id="tst-comment" rows="2" placeholder="Додаткові нотатки..."></textarea>
-            </div>
+            <!-- ШК Сховані у спойлер для економії місця, якщо потрібно перевірити -->
+            <details class="text-[10px] text-slate-500">
+                <summary class="cursor-pointer font-bold mb-2">Деталі штрих-кодів</summary>
+                <div class="grid grid-cols-2 gap-3 mt-2">
+                    <div><label class="block mb-1">ШК (Лице)</label><input type="text" id="tst-bcFront" class="font-mono text-xs"></div>
+                    <div><label class="block mb-1">ШК (Зворот)</label><input type="text" id="tst-bcBack" class="font-mono text-xs"></div>
+                </div>
+            </details>
 
-            <button onclick="submitData()" id="btnSubmit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2 text-lg disabled:opacity-50">
+            <button onclick="showPreview()" id="btnSubmit" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2 text-base disabled:opacity-50">
                 <span id="btnText">📤 Відправити звіт</span>
-                <div id="btnSpinner" class="spinner spinner-white hidden"></div>
             </button>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНЕ ВІКНО КАМЕРИ -->
+    <div id="cameraModal" class="fixed inset-0 bg-black z-[100] hidden flex-col">
+        <div class="relative w-full h-full flex-1 overflow-hidden bg-black">
+            <video id="cameraVideo" autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
+            <!-- Гайдлайн для видошукача -->
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
+                <div class="w-full h-[70%] border-2 border-orange-500/80 rounded-xl relative">
+                    <!-- Затінення навколо -->
+                    <div class="absolute w-[200vw] h-[200vh] -left-[50vw] -top-[50vh] camera-overlay rounded-xl border-0"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-white/60 font-bold text-sm tracking-widest uppercase bg-black/40 px-3 py-1 rounded">Наведіть на документ</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="h-28 bg-black flex items-center justify-around px-8 pb-4 shrink-0 border-t border-slate-800">
+            <button onclick="closeCamera()" class="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center text-white active:scale-90 transition-transform">
+                ✕
+            </button>
+            <button onclick="takeSnapshot()" class="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform">
+                <div class="w-16 h-16 bg-white rounded-full"></div>
+            </button>
+            <div class="w-14 h-14"></div> <!-- Spacer -->
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНЕ ВІКНО: ПЕРЕГЛЯД ПЕРЕД ВІДПРАВКОЮ -->
+    <div id="previewModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-700">
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <h2 class="text-base font-black text-slate-800 dark:text-white text-center uppercase tracking-wide text-orange-600">Перевірка даних</h2>
+            </div>
+            <div id="previewContent" class="p-5 overflow-y-auto text-sm space-y-2.5 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800">
+                <!-- Дані генеруються в JS -->
+            </div>
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex gap-3 bg-slate-50 dark:bg-slate-800/50">
+                <button onclick="closePreview()" class="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition-colors">Назад</button>
+                <button onclick="confirmSubmit()" class="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-lg flex justify-center items-center gap-2">
+                    <span id="confirmBtnText">Підтвердити</span>
+                    <div id="confirmSpinner" class="spinner spinner-white hidden !w-4 !h-4 border-2"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНЕ ВІКНО: ІСТОРІЯ -->
+    <div id="historyModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh] border border-slate-200 dark:border-slate-700">
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <h2 class="text-base font-black text-slate-800 dark:text-white uppercase tracking-wide flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 
+                    Моя зміна
+                </h2>
+                <button onclick="closeHistory()" class="text-slate-400 hover:text-slate-600 font-bold text-xl leading-none">&times;</button>
+            </div>
+            <div id="historyContent" class="p-4 overflow-y-auto space-y-3 bg-white dark:bg-slate-800 flex-1">
+                <!-- Історія генерується в JS -->
+            </div>
         </div>
     </div>
 
@@ -223,154 +276,132 @@
 
     <script>
         // ==========================================
-        // НАЛАШТУВАННЯ ПОСИЛАНЬ ТА КЛЮЧІВ
+        // НАЛАШТУВАННЯ
         // ==========================================
-        
-        // Вставте сюди посилання на ваш Google Apps Script (ТІЛЬКИ ДЛЯ ЗБЕРЕЖЕННЯ В ТАБЛИЦЮ)
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQo6WtVXFHlW58ywEddpqbzhfDeytrsxcBD7srnal0_yPhRBMQcEj7r38sQ61TDu7e5g/exec"; 
-        
-        // Ключ AI тепер дістається з безпечної пам'яті браузера (локально)
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzBoqP4bE7uiggwJ_5Cst33Sagqd-IoACzFb5ptWhtAXJhm3rg5yLLLN78hhk26DHxgXg/exec"; 
         let GEMINI_API_KEY = localStorage.getItem('gemini_api_key_qc') || "";
+        let currentPayload = null;
 
+        // --- PWA та Офлайн Налаштування ---
+        const manifest = {
+            "name": "Виробництво QC", "short_name": "Варки AI", "start_url": ".", "display": "standalone",
+            "background_color": "#f8fafc", "theme_color": "#ea580c",
+            "icons": [{"src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ea580c'/%3E%3Ctext x='25' y='65' fill='white' font-size='40' font-family='sans-serif'%3EQC%3C/text%3E%3C/svg%3E", "sizes": "192x192", "type": "image/svg+xml"}]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${URL.createObjectURL(manifestBlob)}">`);
+
+        // --- Синхронізація Офлайн Даних через IndexedDB (localForage) ---
+        async function syncOffline() {
+            try {
+                let queue = await localforage.getItem('offlineReports') || [];
+                if(queue.length === 0 || !navigator.onLine) return;
+                
+                showToast(`🔄 Синхронізація ${queue.length} збережених звітів...`);
+                let remaining = [];
+                for(let payload of queue) {
+                    try {
+                        await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
+                    } catch(e) { remaining.push(payload); }
+                }
+                await localforage.setItem('offlineReports', remaining);
+                if(remaining.length === 0) showToast("✅ Всі офлайн звіти відправлено!", false, 3000);
+            } catch(e) { console.error("Sync Error", e); }
+        }
+        window.addEventListener('online', syncOffline);
+        document.addEventListener('DOMContentLoaded', syncOffline);
+
+        // --- Захист API ключа ---
         function resetApiKey() {
-            const newKey = prompt("Введіть новий API ключ Gemini (AIzaSy... або AQ.Ab...):", GEMINI_API_KEY);
+            const pass = prompt("Введіть пароль доступу до налаштувань:");
+            if (pass !== "0987") { if(pass !== null) showToast("❌ Невірний пароль", true); return; }
+            
+            const newKey = prompt("Введіть новий API ключ Gemini:", GEMINI_API_KEY);
             if (newKey !== null && newKey.trim() !== "") {
                 GEMINI_API_KEY = newKey.trim();
                 localStorage.setItem('gemini_api_key_qc', GEMINI_API_KEY);
                 showToast("🔑 Ключ успішно оновлено!");
             }
         }
-        // ==========================================
-
-        // --- БАЗА ДАНИХ СОУСІВ ---
-        const csvData = `
-1108 Теріякі Bonsai,1108.0, +, +, +,,17.5,19.5,9.5,11.7,-,-
-1101 Соєвий Bonsai,1101.0, +,, +,,12.8,14.8,-,-,4.5,4.8
-1102 Соєвий Bonsai Prem,1102.0, +,, +,,25.0,27.0,-,-,-,-
-        `;
-        const PRODUCT_SPECS_DB = {};
-        const productsList = [];
-        
-        function parseCSV() {
-            const lines = csvData.trim().split('\n');
-            lines.forEach(line => {
-                const cols = line.split(',');
-                if(cols.length < 2) return;
-                const name = cols[0].trim();
-                productsList.push(name);
-                const keyMatch = name.match(/^\d+/);
-                const key = keyMatch ? keyMatch[0] : name;
-
-                PRODUCT_SPECS_DB[key] = {
-                    dry: { req: cols[2] === '+', min: parseFloat(cols[6]) || null, max: parseFloat(cols[7]) || null },
-                    visc: { req: cols[3] === '+', min: parseFloat(cols[8]) || null, max: parseFloat(cols[9]) || null },
-                    ph: { req: cols[4] === '+', min: parseFloat(cols[10]) || null, max: parseFloat(cols[11]) || null },
-                    stab: { req: cols[5] === '+' }
-                };
-            });
-        }
-        parseCSV();
-
-        const dl = document.getElementById('products-list');
-        productsList.forEach(p => dl.appendChild(new Option(p, p)));
-
-        let currentSpecs = { dry: {req:true}, visc: {req:true}, ph: {req:true}, stab: {req:true} };
-
-        function updateProductSpecs() {
-            const val = document.getElementById('tst-product').value;
-            const keyMatch = val.match(/^\d+/);
-            const key = keyMatch ? keyMatch[0] : val;
-            currentSpecs = PRODUCT_SPECS_DB[key] || { dry: {req:true}, visc: {req:true}, ph: {req:true}, stab: {req:true} };
-            applySpecs();
-        }
-
-        function applySpecs() {
-            updateInput('dry', '°Bx'); updateInput('visc', 'cm/30s'); updateInput('ph', '');
-            const stabSelect = document.getElementById('tst-stab');
-            if(!currentSpecs.stab.req) {
-                stabSelect.disabled = true; stabSelect.required = false; document.getElementById('info-stab').innerText = "Не потрібно";
-            } else {
-                stabSelect.disabled = false; stabSelect.required = true; document.getElementById('info-stab').innerText = "";
-            }
-        }
-
-        function updateInput(type, unit) {
-            const input = document.getElementById('tst-' + type);
-            const info = document.getElementById('info-' + type);
-            const spec = currentSpecs[type];
-            if (!spec.req) {
-                input.disabled = true; input.value = ""; input.required = false; info.innerText = "Не потрібно"; input.classList.remove('range-alert'); info.className = "range-info range-normal";
-            } else {
-                input.disabled = false; input.required = true;
-                info.innerText = (spec.min && spec.max) ? `Норма: ${spec.min}-${spec.max} ${unit}` : (type==='ph'? "Норма: < 4.5" : "Норма не задана");
-                info.className = "range-info range-normal";
-                if(input.value) checkRange(input, type);
-            }
-        }
-
-        function checkRange(input, type) {
-            const val = parseFloat(input.value);
-            const spec = currentSpecs[type];
-            const info = document.getElementById('info-' + type);
-            if (!spec.req || isNaN(val)) { input.classList.remove('range-alert'); return; }
-            
-            let isErr = false; let limit = "";
-            if (type === 'ph' && !spec.max && val > 4.5) { isErr = true; limit = "< 4.5"; }
-            else if (spec.min && spec.max && (val < spec.min || val > spec.max)) { isErr = true; limit = `${spec.min}-${spec.max}`; }
-
-            if (isErr) {
-                input.classList.add('range-alert'); info.innerText = `⚠️ Невідповідність! Норма: ${limit}`; info.className = "range-info range-error";
-            } else {
-                input.classList.remove('range-alert'); 
-                info.innerText = "✅ В нормі"; info.className = "range-info text-emerald-600";
-            }
-        }
 
         // --- THEME ---
         document.getElementById('themeToggle').addEventListener('click', () => {
             document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         });
 
-        // --- BUTTON TOGGLES ---
-        function setResult(btn, type, value) {
-            const buttons = btn.parentElement.querySelectorAll('.toggle-btn');
-            buttons.forEach(b => b.classList.remove('active-clean', 'active-dirty'));
-            document.getElementById('tst-' + type).value = value;
-            if (value === '✅') btn.classList.add('active-clean'); else btn.classList.add('active-dirty');
+        // --- КАМЕРА ТА ФОТО ---
+        let photos = { front: null, back: null };
+        let currentStream = null;
+        let currentSideForCamera = null;
+
+        async function initCamera(side) {
+            currentSideForCamera = side;
+            // Спробуємо відкрити кастомну камеру
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                const videoEl = document.getElementById('cameraVideo');
+                videoEl.srcObject = currentStream;
+                document.getElementById('cameraModal').classList.remove('hidden');
+                document.getElementById('cameraModal').classList.add('flex');
+            } catch(err) {
+                console.warn("Камера недоступна, використовуємо системний загрузчик:", err);
+                // Фолбек: імітуємо клік по інпуту
+                document.getElementById(`in-${side}`).click();
+            }
         }
 
-        // --- PHOTO & ПРЯМИЙ ВИКЛИК AI ---
-        let photos = { front: null, back: null };
-        document.getElementById('zone-front').onclick = () => document.getElementById('in-front').click();
-        document.getElementById('zone-back').onclick = () => document.getElementById('in-back').click();
+        function closeCamera() {
+            if(currentStream) { currentStream.getTracks().forEach(t => t.stop()); currentStream = null; }
+            document.getElementById('cameraModal').classList.add('hidden');
+            document.getElementById('cameraModal').classList.remove('flex');
+        }
 
-        function processImage(input, side) {
+        function takeSnapshot() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const base64Data = canvas.toDataURL('image/jpeg', 0.8);
+            closeCamera();
+            processBase64Image(base64Data, currentSideForCamera);
+        }
+
+        // Для файлового інпуту (фолбек)
+        function handleFileInput(input, side) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.getElementById('canvas');
-                        const ctx = canvas.getContext('2d');
-                        const MAX_SIZE = 1200;
-                        let w = img.width, h = img.height;
-                        if (w > h && w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } 
-                        else if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; }
-                        canvas.width = w; canvas.height = h;
-                        ctx.drawImage(img, 0, 0, w, h);
-                        
-                        const base64Full = canvas.toDataURL('image/jpeg', 0.7);
-                        photos[side] = base64Full;
-                        document.getElementById(`img-${side}`).src = base64Full;
-                        document.getElementById(`img-${side}`).style.display = 'block';
-                        document.getElementById(`img-${side}`).nextElementSibling.style.display = 'flex';
-                        
-                        analyzeAIDirect(base64Full, side);
-                    }
-                    img.src = e.target.result;
-                }
+                reader.onload = e => processBase64Image(e.target.result, side);
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+
+        function processBase64Image(dataUrl, side) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                const MAX_SIZE = 1400; 
+                let w = img.width, h = img.height;
+                if (w > h && w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } 
+                else if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; }
+                canvas.width = w; canvas.height = h;
+                ctx.drawImage(img, 0, 0, w, h);
+                
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                photos[side] = compressedBase64;
+                document.getElementById(`img-${side}`).src = compressedBase64;
+                document.getElementById(`img-${side}`).style.display = 'block';
+                document.getElementById(`img-${side}`).nextElementSibling.style.display = 'flex';
+                
+                if(navigator.onLine) {
+                    analyzeAIDirect(compressedBase64, side);
+                } else {
+                    showToast("⚠️ Немає інтернету. ШІ недоступний.", true);
+                }
+            }
+            img.src = dataUrl;
         }
 
         function removePhoto(e, side) {
@@ -378,20 +409,29 @@
             document.getElementById(`img-${side}`).style.display = 'none'; e.target.style.display = 'none';
         }
 
-        // 🔥 ПРЯМИЙ ВИКЛИК З АВТО-ВИЗНАЧЕННЯМ МОДЕЛІ 🔥
+        // Валідація кількості
+        function validateQty(val) {
+            const input = document.getElementById('tst-planQty');
+            const warning = document.getElementById('qtyWarning');
+            let num = parseInt(val.replace(/\D/g, ''));
+            if (!isNaN(num) && num > 20000) {
+                input.classList.add('input-warning');
+                warning.classList.remove('hidden');
+            } else {
+                input.classList.remove('input-warning');
+                warning.classList.add('hidden');
+            }
+        }
+
+        // 🔥 ВИКЛИК GEMINI З JSON SCHEMA 🔥
         async function analyzeAIDirect(base64ImageFull, side) {
             const ind = document.getElementById('aiIndicator');
-            const fields = side === 'front' ? ['tst-task', 'tst-bcFront', 'tst-product'] : ['tst-bcBack'];
+            const fields = side === 'front' 
+                ? ['tst-task', 'tst-bcFront', 'tst-sauce', 'tst-product', 'tst-planQty', 'tst-kettle', 'tst-filling', 'tst-labeling', 'tst-packaging', 'tst-planDate', 'tst-cook'] 
+                : ['tst-bcBack', 'tst-actualDate'];
             
             if (!GEMINI_API_KEY) {
-                const newKey = prompt("Для автоматичного розпізнавання введіть ваш API ключ Gemini (це робиться один раз):");
-                if (newKey && newKey.trim() !== "") {
-                    GEMINI_API_KEY = newKey.trim();
-                    localStorage.setItem('gemini_api_key_qc', GEMINI_API_KEY);
-                } else {
-                    showToast("⚠️ Розпізнавання скасовано. Заповніть дані вручну.", true);
-                    return;
-                }
+                showToast("⚠️ Ключ ШІ не налаштовано. Зверніться до адміністратора.", true); return;
             }
 
             ind.style.display = 'flex';
@@ -399,89 +439,68 @@
 
             try {
                 const base64Data = base64ImageFull.split(',')[1];
+                let usedModel = "gemini-1.5-flash"; 
                 
-                // 1. АВТОМАТИЧНИЙ ПОШУК ДОСТУПНОЇ МОДЕЛІ ДЛЯ КЛЮЧА
-                let usedModel = "gemini-1.5-flash"; // Базовий варіант
-                try {
-                    const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
-                    if (modelRes.ok) {
-                        const modelData = await modelRes.json();
-                        if (modelData.models) {
-                            const availableModels = modelData.models
-                                .filter(m => m.supportedGenerationMethods?.includes("generateContent") && m.name.includes("gemini"))
-                                .map(m => m.name.replace('models/', ''));
-                            if (availableModels.length > 0) {
-                                // Пріоритет моделей
-                                usedModel = availableModels.find(m => m === 'gemini-1.5-flash-002') ||
-                                            availableModels.find(m => m === 'gemini-1.5-flash-latest') ||
-                                            availableModels.find(m => m === 'gemini-1.5-flash') ||
-                                            availableModels.find(m => m.includes('flash')) ||
-                                            availableModels.find(m => m.includes('pro')) ||
-                                            availableModels[0];
-                            }
-                        }
-                    }
-                } catch(err) {
-                    console.log("Model auto-discovery failed, using default", err);
-                }
-
-                console.log("Використана модель:", usedModel);
-
-                // 2. ЗАПИТ НА ГЕНЕРАЦІЮ
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${usedModel}:generateContent?key=${GEMINI_API_KEY}`;
                 
-                let promptText = "Це документ виробництва соусів (технологічна карта). ";
+                let promptText = "Це документ виробництва. Знайди дані і поверни їх згідно схеми. Якщо даних немає, повертай порожній рядок. ";
+                let responseSchemaProperties = {};
+
                 if (side === 'front') {
-                    promptText += "Прочитай ЛИЦЬОВУ сторону. Знайди: 1) Номер завдання (4 цифри, напр. 9898); 2) Штрих-код (13 цифр); 3) Код і назву продукту (напр. '1108 Теріякі Bonsai'). Поверни ЛИШЕ формат JSON: {\"taskNumber\": \"9898\", \"barcode\": \"1000000098983\", \"product\": \"1108 Теріякі Bonsai\"}. Якщо чогось не видно, пиши null.";
+                    promptText += `ЛИЦЬОВА СТОРОНА: Номер завдання (напр. 9898), Назва соусу, Назва продукції, Планова кількість (напр. 1700 кг), Варочний котел, Лінія розливу, Маркування, Упаковка, Планова дата, ПІБ Варника, Штрих-код (13 цифр).`;
+                    responseSchemaProperties = {
+                        "taskNumber": { "type": "STRING" }, "sauceName": { "type": "STRING" }, "productName": { "type": "STRING" },
+                        "planQty": { "type": "STRING" }, "kettle": { "type": "STRING" }, "filling": { "type": "STRING" },
+                        "labeling": { "type": "STRING" }, "packaging": { "type": "STRING" }, "planDate": { "type": "STRING" },
+                        "cook": { "type": "STRING" }, "barcodeFront": { "type": "STRING" }
+                    };
                 } else {
-                    promptText += "Прочитай ЗВОРОТНУ сторону. Знайди штрих-код на цій сторінці. Поверни ЛИШЕ формат JSON: {\"taskNumber\": null, \"barcode\": \"2000000098982\", \"product\": null}.";
+                    promptText += `ЗВОРОТНА СТОРОНА: Штрих-код (13 цифр), Фактична дата варки (зазвичай внизу біля підпису, напр. '22.03.2026').`;
+                    responseSchemaProperties = {
+                        "barcodeBack": { "type": "STRING" }, "actualDate": { "type": "STRING" }
+                    };
                 }
 
                 const payload = {
-                    "contents": [{
-                        "parts": [
-                            { "text": promptText },
-                            { "inline_data": { "mime_type": "image/jpeg", "data": base64Data } }
-                        ]
-                    }],
-                    "generationConfig": { "temperature": 0.1, "responseMimeType": "application/json" }
+                    "contents": [{ "parts": [ { "text": promptText }, { "inline_data": { "mime_type": "image/jpeg", "data": base64Data } } ] }],
+                    "generationConfig": { 
+                        "temperature": 0.1, 
+                        "responseMimeType": "application/json",
+                        "responseSchema": { "type": "OBJECT", "properties": responseSchemaProperties }
+                    }
                 };
 
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error?.message || "HTTP Error " + response.status);
-                }
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error("HTTP Error " + response.status);
 
                 const data = await response.json();
                 let resultText = data.candidates[0].content.parts[0].text;
-                resultText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
-                
+                // Завдяки Schema, результат гарантовано буде правильним JSON
                 const resultObj = JSON.parse(resultText);
 
                 if (side === 'front') {
                     if (resultObj.taskNumber) document.getElementById('tst-task').value = resultObj.taskNumber;
-                    if (resultObj.barcode) document.getElementById('tst-bcFront').value = resultObj.barcode;
-                    if (resultObj.product) { 
-                        document.getElementById('tst-product').value = resultObj.product; 
-                        updateProductSpecs(); 
+                    if (resultObj.barcodeFront) document.getElementById('tst-bcFront').value = resultObj.barcodeFront;
+                    if (resultObj.sauceName) document.getElementById('tst-sauce').value = resultObj.sauceName;
+                    if (resultObj.productName) document.getElementById('tst-product').value = resultObj.productName;
+                    if (resultObj.planQty) {
+                        document.getElementById('tst-planQty').value = resultObj.planQty;
+                        validateQty(resultObj.planQty);
                     }
+                    if (resultObj.kettle) document.getElementById('tst-kettle').value = resultObj.kettle;
+                    if (resultObj.filling) document.getElementById('tst-filling').value = resultObj.filling;
+                    if (resultObj.labeling) document.getElementById('tst-labeling').value = resultObj.labeling;
+                    if (resultObj.packaging) document.getElementById('tst-packaging').value = resultObj.packaging;
+                    if (resultObj.planDate) document.getElementById('tst-planDate').value = resultObj.planDate;
+                    if (resultObj.cook) document.getElementById('tst-cook').value = resultObj.cook;
                 } else {
-                    if (resultObj.barcode) document.getElementById('tst-bcBack').value = resultObj.barcode;
+                    if (resultObj.barcodeBack) document.getElementById('tst-bcBack').value = resultObj.barcodeBack;
+                    if (resultObj.actualDate) document.getElementById('tst-actualDate').value = resultObj.actualDate;
                 }
-                showToast("✨ Дані розпізнано ШІ!");
+                showToast("✨ Маршрут розпізнано ШІ!");
 
             } catch(e) {
-                console.error("AI Fetch Error:", e); 
-                showToast("⚠️ Помилка ШІ: " + (e.message || "Невідома помилка"), true);
-                if (e.message.includes("API key not valid")) {
-                    resetApiKey(); 
-                }
+                console.error("AI Error:", e); showToast("⚠️ Помилка ШІ. Введіть дані вручну.", true);
             } finally {
                 ind.style.display = 'none';
                 fields.forEach(f => {
@@ -492,69 +511,149 @@
             }
         }
 
-        // --- ВІДПРАВКА ДАНИХ (В Apps Script) ---
-        async function submitData() {
-            if (GOOGLE_SCRIPT_URL.includes("ВСТАВТЕ_ПОСИЛАННЯ")) {
-                showToast("⚠️ Замініть GOOGLE_SCRIPT_URL в коді!", true);
-                return;
+        // --- ІСТОРІЯ ЗМІНИ ---
+        async function openHistory() {
+            const histBox = document.getElementById('historyContent');
+            let history = await localforage.getItem('historyReports') || [];
+            if(history.length === 0) {
+                histBox.innerHTML = `<div class="text-center text-slate-400 py-8 italic font-medium">Ваша зміна ще порожня.</div>`;
+            } else {
+                histBox.innerHTML = history.map(h => `
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                        <div>
+                            <div class="text-[10px] text-slate-500 font-bold mb-0.5">${h.time}</div>
+                            <div class="font-bold text-sm text-slate-800 dark:text-slate-200">${h.sauceName}</div>
+                        </div>
+                        <div class="font-black text-orange-600 bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded text-sm">#${h.taskNumber}</div>
+                    </div>
+                `).join('');
             }
+            document.getElementById('historyModal').classList.remove('hidden');
+            document.getElementById('historyModal').classList.add('flex');
+        }
 
-            // Перевірка
-            const required = ['tst-employee', 'tst-cookName', 'tst-task', 'tst-product', 'tst-bcFront', 'tst-bcBack', 'tst-color', 'tst-aroma', 'tst-taste', 'tst-consist'];
-            for(let id of required) { if(!document.getElementById(id).value) { showToast("Заповніть всі обов'язкові поля!", true); return; } }
+        function closeHistory() {
+            document.getElementById('historyModal').classList.add('hidden');
+            document.getElementById('historyModal').classList.remove('flex');
+        }
+
+        async function addToHistory(taskNumber, sauceName) {
+            let history = await localforage.getItem('historyReports') || [];
+            history.unshift({
+                taskNumber: taskNumber,
+                sauceName: sauceName,
+                time: new Date().toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'})
+            });
+            if(history.length > 50) history.pop();
+            await localforage.setItem('historyReports', history);
+        }
+
+        // --- ПОПЕРЕДНІЙ ПЕРЕГЛЯД ПЕРЕД ВІДПРАВКОЮ ---
+        function showPreview() {
+            if (GOOGLE_SCRIPT_URL.includes("ВСТАВТЕ_ПОСИЛАННЯ")) { showToast("⚠️ Замініть GOOGLE_SCRIPT_URL в коді!", true); return; }
+
+            const emp = document.getElementById('tst-employee').value;
+            const task = document.getElementById('tst-task').value;
+            const sauce = document.getElementById('tst-sauce').value;
+            
+            if(!emp) { showToast("Оберіть контролера!", true); return; }
+            if(!task || !sauce) { showToast("Заповніть номер завдання та назву соусу!", true); return; }
             if(!photos.front || !photos.back) { showToast("Додайте обидва фото!", true); return; }
 
-            const btn = document.getElementById('btnSubmit');
-            btn.disabled = true; document.getElementById('btnText').innerText = "Відправка..."; document.getElementById('btnSpinner').classList.remove('hidden');
-
-            const payload = {
+            currentPayload = {
                 action: 'submit',
                 time: new Date().toLocaleTimeString('uk-UA', {hour:'2-digit', minute:'2-digit'}),
-                employee: document.getElementById('tst-employee').value,
-                cook: document.getElementById('tst-cookName').value,
-                taskNumber: document.getElementById('tst-task').value,
-                product: document.getElementById('tst-product').value,
+                employee: emp,
+                taskNumber: task,
+                sauceName: sauce,
+                productName: document.getElementById('tst-product').value,
+                planQty: document.getElementById('tst-planQty').value,
+                kettle: document.getElementById('tst-kettle').value,
+                filling: document.getElementById('tst-filling').value,
+                labeling: document.getElementById('tst-labeling').value,
+                packaging: document.getElementById('tst-packaging').value,
+                planDate: document.getElementById('tst-planDate').value,
+                actualDate: document.getElementById('tst-actualDate').value,
+                cook: document.getElementById('tst-cook').value,
                 barcodeFront: document.getElementById('tst-bcFront').value,
                 barcodeBack: document.getElementById('tst-bcBack').value,
-                color: document.getElementById('tst-color').value,
-                aroma: document.getElementById('tst-aroma').value,
-                taste: document.getElementById('tst-taste').value,
-                consist: document.getElementById('tst-consist').value,
-                dry: document.getElementById('tst-dry').value || "Не потрібно",
-                visc: document.getElementById('tst-visc').value || "Не потрібно",
-                ph: document.getElementById('tst-ph').value || "Не потрібно",
-                stability: document.getElementById('tst-stab').value || "Не потрібно",
-                comment: document.getElementById('tst-comment').value,
                 frontImage: photos.front,
                 backImage: photos.back
             };
 
+            const html = `
+                <div class="grid grid-cols-[90px_1fr] gap-x-2 gap-y-3">
+                    <span class="text-slate-400 font-bold uppercase text-[10px] self-center">Контролер:</span> 
+                    <span class="font-bold text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">${currentPayload.employee}</span>
+                    
+                    <span class="text-slate-400 font-bold uppercase text-[10px] self-center">Завдання:</span> 
+                    <span class="font-black text-orange-600 text-base bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded">${currentPayload.taskNumber}</span>
+                    
+                    <span class="text-slate-400 font-bold uppercase text-[10px] self-center">Соус:</span> 
+                    <span class="font-bold text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">${currentPayload.sauceName}</span>
+                    
+                    <span class="text-slate-400 font-bold uppercase text-[10px] self-center">План:</span> 
+                    <span class="font-bold text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded ${parseInt(currentPayload.planQty.replace(/\D/g, '')) > 20000 ? 'text-yellow-600 bg-yellow-100' : ''}">${currentPayload.planQty || '-'}</span>
+                    
+                    <span class="text-slate-400 font-bold uppercase text-[10px] self-center">Варник:</span> 
+                    <span class="font-bold text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">${currentPayload.cook || '-'}</span>
+                </div>
+            `;
+            document.getElementById('previewContent').innerHTML = html;
+            document.getElementById('previewModal').classList.remove('hidden');
+            document.getElementById('previewModal').classList.add('flex');
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').classList.add('hidden');
+            document.getElementById('previewModal').classList.remove('flex');
+        }
+
+        // --- ФІНАЛЬНА ВІДПРАВКА ДАНИХ АБО ОФЛАЙН ЗБЕРЕЖЕННЯ ---
+        async function confirmSubmit() {
+            const btnText = document.getElementById('confirmBtnText');
+            const spinner = document.getElementById('confirmSpinner');
+            btnText.innerText = "Відправка..."; spinner.classList.remove('hidden');
+
+            const empName = currentPayload.employee.split(' ')[1] ? currentPayload.employee.split(' ')[0] + " " + currentPayload.employee.split(' ')[1] : currentPayload.employee;
+            const successMessage = `✅ Шановний(а) ${empName}, дякуємо вам за зварений соус і вчасно просканований документ!`;
+
             try {
-                // Відправляємо у Google Apps Script через no-cors (як в MRP Import)
+                if(!navigator.onLine) throw new Error("Offline");
+                
                 await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(payload)
+                    method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(currentPayload)
                 });
-                showToast("✅ Звіт успішно відправлено!");
-                setTimeout(() => location.reload(), 2000);
+                
+                closePreview();
+                await addToHistory(currentPayload.taskNumber, currentPayload.sauceName);
+                showToast(successMessage, false, 2500);
+                setTimeout(() => location.reload(), 2500);
+
             } catch (e) {
-                console.error("Помилка відправки:", e);
-                showToast("❌ Помилка відправки: Перевірте інтернет", true);
-                btn.disabled = false; document.getElementById('btnText').innerText = "📤 Відправити звіт"; document.getElementById('btnSpinner').classList.add('hidden');
+                // Надійне офлайн збереження через IndexedDB
+                let queue = await localforage.getItem('offlineReports') || [];
+                queue.push(currentPayload);
+                await localforage.setItem('offlineReports', queue);
+                
+                closePreview();
+                await addToHistory(currentPayload.taskNumber, currentPayload.sauceName);
+                showToast(`⚠️ Немає інтернету. Звіт збережено в пам'ять! Шановний(а) ${empName}, дякуємо...`, true, 3000);
+                setTimeout(() => location.reload(), 3000);
+            } finally {
+                btnText.innerText = "Підтвердити"; spinner.classList.add('hidden');
             }
         }
 
-        function showToast(msg, err=false) {
+        function showToast(msg, err=false, duration=3000) {
             const t = document.createElement('div');
-            t.className = `p-4 rounded-lg shadow-xl font-bold text-white mb-2 transition-all transform translate-x-full ${err?'bg-red-500':'bg-emerald-500'}`;
+            t.className = `p-4 rounded-xl shadow-2xl font-bold text-white mb-2 transition-all transform translate-x-full border-2 z-[3000] ${err?'bg-red-600 border-red-400':'bg-emerald-600 border-emerald-400'}`;
             t.innerText = msg; document.getElementById('toast-container').appendChild(t);
             requestAnimationFrame(() => t.classList.remove('translate-x-full'));
-            setTimeout(() => { t.classList.add('translate-x-full'); setTimeout(()=>t.remove(),300); }, 3000);
+            setTimeout(() => { t.classList.add('translate-x-full'); setTimeout(()=>t.remove(),300); }, duration);
         }
         
-        // Збереження оператора
         if(localStorage.getItem('qc_emp')) document.getElementById('tst-employee').value = localStorage.getItem('qc_emp');
         document.getElementById('tst-employee').onchange = (e) => localStorage.setItem('qc_emp', e.target.value);
     </script>
