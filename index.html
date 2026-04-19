@@ -183,11 +183,11 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">ШК (Лице) *</label>
-                        <input type="text" id="tst-bcFront" class="font-mono font-bold text-xs bg-white dark:bg-slate-900" placeholder="13 цифр..." required>
+                        <input type="text" id="tst-bcFront" class="font-mono font-bold text-xs bg-white dark:bg-slate-900" placeholder="Починається з 1..." required>
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">ШК (Зворот) *</label>
-                        <input type="text" id="tst-bcBack" class="font-mono font-bold text-xs bg-white dark:bg-slate-900" placeholder="13 цифр..." required>
+                        <input type="text" id="tst-bcBack" class="font-mono font-bold text-xs bg-white dark:bg-slate-900" placeholder="Починається з 2..." required>
                     </div>
                 </div>
                 <p class="text-[9px] text-slate-400 font-medium">Звіт не буде відправлено без наявності обох штрих-кодів. Якщо ШІ їх не знайшов — введіть вручну.</p>
@@ -297,7 +297,6 @@
                     img.onload = function() {
                         const canvas = document.getElementById('canvas');
                         const ctx = canvas.getContext('2d');
-                        // ЗБІЛЬШЕНО РОЗДІЛЬНУ ЗДАТНІСТЬ ДО 2048 ДЛЯ КРАЩОГО ЧИТАННЯ ШТРИХ-КОДІВ
                         const MAX_SIZE = 2048; 
                         let w = img.width, h = img.height;
                         if (w > h && w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } 
@@ -305,7 +304,6 @@
                         canvas.width = w; canvas.height = h;
                         ctx.drawImage(img, 0, 0, w, h);
                         
-                        // ЗБІЛЬШЕНО ЯКІСТЬ СТИСНЕННЯ (0.9 замість 0.8)
                         const compressedBase64 = canvas.toDataURL('image/jpeg', 0.9);
                         photos[side] = compressedBase64;
                         document.getElementById(`img-${side}`).src = compressedBase64;
@@ -342,7 +340,7 @@
             }
         }
 
-        // 🔥 ОНОВЛЕНИЙ PROMPT ДЛЯ ШТРИХ-КОДІВ 🔥
+        // 🔥 ОНОВЛЕНИЙ PROMPT ДЛЯ ШТРИХ-КОДІВ ТА НАЗВИ 🔥
         async function analyzeAIDirect(base64ImageFull, side) {
             const ind = document.getElementById('aiIndicator');
             const fields = side === 'front' 
@@ -380,17 +378,32 @@
 
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${usedModel}:generateContent?key=${GEMINI_API_KEY}`;
                 
-                let promptText = "Це документ виробництва. ";
+                let promptText = "Це документ виробництва. Ти повинен бути максимально точним. ";
                 if (side === 'front') {
-                    promptText += `Прочитай ЛИЦЬОВУ сторону. Знайди: 1) Номер завдання (напр. 9898); 2) Назву соусу; 3) Назву продукції; 4) Планову кількість (напр. 1700 кг або 1520 шт); 5) Варочний котел (напр. ВК 04); 6) Лінію розливу; 7) Маркування; 8) Упаковку; 9) Планову дату варки; 10) ПІБ Варника; 11) Штрих-код (13 цифр). ДУЖЕ ВАЖЛИВО: уважно прочитай дрібні цифри, надруковані безпосередньо ПІД вертикальними лініями штрих-коду. Поверни ЛИШЕ чистий JSON формат: {"taskNumber": "9898", "sauceName": "...", "productName": "...", "planQty": "...", "kettle": "...", "filling": "...", "labeling": "...", "packaging": "...", "planDate": "...", "cook": "...", "barcodeFront": "..."}. Якщо чогось не видно, пиши null.`;
+                    promptText += `Прочитай ЛИЦЬОВУ сторону. Знайди: 
+                    1) Номер завдання; 
+                    2) Назву соусу (УВАГА: назва соусу ЗАВЖДИ починається з 4-х цифр, наприклад '1108 Теріякі Bonsai'); 
+                    3) Назву продукції; 
+                    4) Планову кількість (напр. 1700 кг або 1520 шт); 
+                    5) Варочний котел (напр. ВК 04); 
+                    6) Лінію розливу; 
+                    7) Маркування; 
+                    8) Упаковку; 
+                    9) Планову дату варки; 
+                    10) ПІБ Варника; 
+                    11) Штрих-код (УВАГА: лицьовий штрих-код містить рівно 13 цифр і ЗАВЖДИ починається з цифри 1, наприклад 1000000098983. Шукай його під лініями штрих-коду). 
+                    Поверни ЛИШЕ чистий JSON формат: {"taskNumber": "...", "sauceName": "...", "productName": "...", "planQty": "...", "kettle": "...", "filling": "...", "labeling": "...", "packaging": "...", "planDate": "...", "cook": "...", "barcodeFront": "..."}. Якщо чогось не видно, пиши null.`;
                 } else {
-                    promptText += `Прочитай ЗВОРОТНУ сторону. Знайди: 1) Штрих-код (13 цифр). ДУЖЕ ВАЖЛИВО: читай дрібні цифри під лініями (зазвичай починається на 200... або 100...); 2) Фактичну дату варки (зазвичай внизу біля підпису, напр. '22.03.2026'). Поверни ЛИШЕ чистий JSON формат: {"barcodeBack": "...", "actualDate": "..."}.`;
+                    promptText += `Прочитай ЗВОРОТНУ сторону. Знайди: 
+                    1) Штрих-код (УВАГА: зворотній штрих-код містить рівно 13 цифр і ЗАВЖДИ починається з цифри 2, наприклад 2000000098982. Шукай його під лініями штрих-коду); 
+                    2) Фактичну дату варки (зазвичай внизу біля підпису, напр. '22.03.2026'). 
+                    Поверни ЛИШЕ чистий JSON формат: {"barcodeBack": "...", "actualDate": "..."}.`;
                 }
 
                 const payload = {
                     "contents": [{ "parts": [ { "text": promptText }, { "inline_data": { "mime_type": "image/jpeg", "data": base64Data } } ] }],
                     "generationConfig": { 
-                        "temperature": 0.1, 
+                        "temperature": 0.0, 
                         "responseMimeType": "application/json"
                     }
                 };
@@ -595,6 +608,7 @@
             setTimeout(() => { t.classList.add('translate-x-full'); setTimeout(()=>t.remove(),300); }, duration);
         }
         
+        // Збереження Варника в пам'ять
         if(localStorage.getItem('qc_cook')) document.getElementById('tst-cook').value = localStorage.getItem('qc_cook');
         document.getElementById('tst-cook').onchange = (e) => localStorage.setItem('qc_cook', e.target.value);
     </script>
