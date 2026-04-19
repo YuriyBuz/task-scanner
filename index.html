@@ -6,14 +6,12 @@
     <meta name="theme-color" content="#ea580c">
     <title>Завдання на варку</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- IndexedDB Library для безлімітного офлайну -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: { extend: { colors: { slate: { 50: '#f8fafc', 800: '#1e293b', 900: '#0f172a' } } } }
         }
-        // Завантаження збереженої теми
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         }
@@ -37,7 +35,6 @@
         .dark input, .dark select, .dark textarea { border-color: #475569 !important; background-color: #1e293b !important; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: #f97316 !important; box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2); }
         
-        /* Класи для попередження (валідації) */
         .input-warning { border-color: #eab308 !important; background-color: #fef9c3 !important; color: #854d0e !important; box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.2); }
         .dark .input-warning { background-color: rgba(161, 98, 7, 0.2) !important; color: #fde047 !important; }
 
@@ -72,7 +69,7 @@
             
             <div class="flex-1 text-center px-2">
                 <h1 class="text-xl sm:text-2xl font-bold text-orange-700 dark:text-orange-500 leading-tight">Завдання на варку</h1>
-                <p class="text-violet-600 dark:text-violet-400 text-[10px] font-bold uppercase tracking-wide">AI Сканер завдань</p>
+                <p class="text-violet-600 dark:text-violet-400 text-[10px] font-bold uppercase tracking-wide">AI Сканер маршрутів</p>
             </div>
             <button id="themeToggle" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
@@ -108,7 +105,6 @@
                 </div>
             </div>
 
-            <!-- БЛОК 1: Основне -->
             <div class="bg-violet-50 dark:bg-slate-800/50 p-4 rounded-xl border border-violet-100 dark:border-slate-700 space-y-3">
                 <h3 class="text-[11px] font-bold text-violet-800 dark:text-violet-300 uppercase border-b border-violet-200 dark:border-slate-600 pb-1.5">Виконавець та Завдання</h3>
                 
@@ -145,7 +141,6 @@
                 </div>
             </div>
 
-            <!-- БЛОК 2: Маршрут -->
             <div class="bg-blue-50 dark:bg-slate-800/50 p-4 rounded-xl border border-blue-100 dark:border-slate-700 space-y-3">
                 <h3 class="text-[11px] font-bold text-blue-800 dark:text-blue-300 uppercase border-b border-blue-200 dark:border-slate-600 pb-1.5">Обладнання та Дати</h3>
                 
@@ -183,7 +178,6 @@
                 </div>
             </div>
 
-            <!-- ОБОВ'ЯЗКОВІ ШТРИХ-КОДИ -->
             <div class="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
                 <h3 class="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase border-b border-slate-200 dark:border-slate-600 pb-1.5">Штрих-коди (Обов'язково)</h3>
                 <div class="grid grid-cols-2 gap-3">
@@ -205,15 +199,13 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНЕ ВІКНО: ПЕРЕГЛЯД ПЕРЕД ВІДПРАВКОЮ -->
     <div id="previewModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-700">
             <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                 <h2 id="previewTitle" class="text-base font-black text-slate-800 dark:text-white text-center uppercase tracking-wide text-orange-600">Завдання на варку</h2>
             </div>
             <div id="previewContent" class="p-5 overflow-y-auto text-sm space-y-2.5 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800">
-                <!-- Дані генеруються в JS -->
-            </div>
+                </div>
             <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex gap-3 bg-slate-50 dark:bg-slate-800/50">
                 <button onclick="closePreview()" class="flex-1 px-4 py-3 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition-colors">Назад</button>
                 <button onclick="confirmSubmit()" class="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-lg flex justify-center items-center gap-2">
@@ -224,7 +216,6 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНЕ ВІКНО: ІСТОРІЯ -->
     <div id="historyModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh] border border-slate-200 dark:border-slate-700">
             <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
@@ -235,8 +226,7 @@
                 <button onclick="closeHistory()" class="text-slate-400 hover:text-slate-600 font-bold text-xl leading-none">&times;</button>
             </div>
             <div id="historyContent" class="p-4 overflow-y-auto space-y-3 bg-white dark:bg-slate-800 flex-1">
-                <!-- Історія генерується в JS -->
-            </div>
+                </div>
         </div>
     </div>
 
@@ -250,7 +240,6 @@
         let GEMINI_API_KEY = localStorage.getItem('gemini_api_key_qc') || "";
         let currentPayload = null;
 
-        // --- PWA та Офлайн Налаштування ---
         const manifest = {
             "name": "Виробництво QC", "short_name": "Варки AI", "start_url": ".", "display": "standalone",
             "background_color": "#f8fafc", "theme_color": "#ea580c",
@@ -259,7 +248,6 @@
         const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
         document.head.insertAdjacentHTML('beforeend', `<link rel="manifest" href="${URL.createObjectURL(manifestBlob)}">`);
 
-        // --- Синхронізація Офлайн Даних через IndexedDB (localForage) ---
         async function syncOffline() {
             try {
                 let queue = await localforage.getItem('offlineReports') || [];
@@ -279,7 +267,6 @@
         window.addEventListener('online', syncOffline);
         document.addEventListener('DOMContentLoaded', syncOffline);
 
-        // --- Захист API ключа ---
         function resetApiKey() {
             const pass = prompt("Введіть пароль доступу до налаштувань ШІ:");
             if (pass !== "0987") { if(pass !== null) showToast("❌ Невірний пароль", true); return; }
@@ -292,13 +279,11 @@
             }
         }
 
-        // --- THEME ---
         document.getElementById('themeToggle').addEventListener('click', () => {
             document.documentElement.classList.toggle('dark');
             localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         });
 
-        // --- ФОТО ТА КАМЕРА ---
         let photos = { front: null, back: null };
         
         document.getElementById('zone-front').onclick = () => document.getElementById('in-front').click();
@@ -312,21 +297,23 @@
                     img.onload = function() {
                         const canvas = document.getElementById('canvas');
                         const ctx = canvas.getContext('2d');
-                        const MAX_SIZE = 1400; 
+                        // ЗБІЛЬШЕНО РОЗДІЛЬНУ ЗДАТНІСТЬ ДО 2048 ДЛЯ КРАЩОГО ЧИТАННЯ ШТРИХ-КОДІВ
+                        const MAX_SIZE = 2048; 
                         let w = img.width, h = img.height;
                         if (w > h && w > MAX_SIZE) { h *= MAX_SIZE / w; w = MAX_SIZE; } 
                         else if (h > MAX_SIZE) { w *= MAX_SIZE / h; h = MAX_SIZE; }
                         canvas.width = w; canvas.height = h;
                         ctx.drawImage(img, 0, 0, w, h);
                         
-                        const base64Full = canvas.toDataURL('image/jpeg', 0.8);
-                        photos[side] = base64Full;
-                        document.getElementById(`img-${side}`).src = base64Full;
+                        // ЗБІЛЬШЕНО ЯКІСТЬ СТИСНЕННЯ (0.9 замість 0.8)
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.9);
+                        photos[side] = compressedBase64;
+                        document.getElementById(`img-${side}`).src = compressedBase64;
                         document.getElementById(`img-${side}`).style.display = 'block';
                         document.getElementById(`img-${side}`).nextElementSibling.style.display = 'flex';
                         
                         if(navigator.onLine) {
-                            analyzeAIDirect(base64Full, side);
+                            analyzeAIDirect(compressedBase64, side);
                         } else {
                             showToast("⚠️ Немає інтернету. ШІ недоступний.", true);
                         }
@@ -342,7 +329,6 @@
             document.getElementById(`img-${side}`).style.display = 'none'; e.target.style.display = 'none';
         }
 
-        // Валідація кількості
         function validateQty(val) {
             const input = document.getElementById('tst-planQty');
             const warning = document.getElementById('qtyWarning');
@@ -356,7 +342,7 @@
             }
         }
 
-        // 🔥 ВИКЛИК GEMINI 🔥
+        // 🔥 ОНОВЛЕНИЙ PROMPT ДЛЯ ШТРИХ-КОДІВ 🔥
         async function analyzeAIDirect(base64ImageFull, side) {
             const ind = document.getElementById('aiIndicator');
             const fields = side === 'front' 
@@ -372,9 +358,8 @@
 
             try {
                 const base64Data = base64ImageFull.split(',')[1];
-                
-                // Авто-визначення моделі
                 let usedModel = "gemini-1.5-flash"; 
+                
                 try {
                     const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
                     if (modelRes.ok) {
@@ -397,9 +382,9 @@
                 
                 let promptText = "Це документ виробництва. ";
                 if (side === 'front') {
-                    promptText += `Прочитай ЛИЦЬОВУ сторону. Знайди: 1) Номер завдання (напр. 9898); 2) Назву соусу (напр. '1108 Теріякі Bonsai'); 3) Назву продукції; 4) Планову кількість (напр. 1700 кг або 1520 шт); 5) Варочний котел (напр. ВК 04); 6) Лінію розливу; 7) Маркування; 8) Упаковку; 9) Планову дату варки; 10) ПІБ Варника (напр. 'Солдатова І.В.'); 11) Штрих-код (13 цифр). Поверни ЛИШЕ чистий JSON формат: {"taskNumber": "9898", "sauceName": "...", "productName": "...", "planQty": "...", "kettle": "...", "filling": "...", "labeling": "...", "packaging": "...", "planDate": "...", "cook": "...", "barcodeFront": "..."}. Якщо чогось не видно, пиши null.`;
+                    promptText += `Прочитай ЛИЦЬОВУ сторону. Знайди: 1) Номер завдання (напр. 9898); 2) Назву соусу; 3) Назву продукції; 4) Планову кількість (напр. 1700 кг або 1520 шт); 5) Варочний котел (напр. ВК 04); 6) Лінію розливу; 7) Маркування; 8) Упаковку; 9) Планову дату варки; 10) ПІБ Варника; 11) Штрих-код (13 цифр). ДУЖЕ ВАЖЛИВО: уважно прочитай дрібні цифри, надруковані безпосередньо ПІД вертикальними лініями штрих-коду. Поверни ЛИШЕ чистий JSON формат: {"taskNumber": "9898", "sauceName": "...", "productName": "...", "planQty": "...", "kettle": "...", "filling": "...", "labeling": "...", "packaging": "...", "planDate": "...", "cook": "...", "barcodeFront": "..."}. Якщо чогось не видно, пиши null.`;
                 } else {
-                    promptText += `Прочитай ЗВОРОТНУ сторону. Знайди: 1) Штрих-код (13 цифр); 2) Фактичну дату варки (зазвичай внизу біля підпису, напр. '22.03.2026'). Поверни ЛИШЕ чистий JSON формат: {"barcodeBack": "...", "actualDate": "..."}.`;
+                    promptText += `Прочитай ЗВОРОТНУ сторону. Знайди: 1) Штрих-код (13 цифр). ДУЖЕ ВАЖЛИВО: читай дрібні цифри під лініями (зазвичай починається на 200... або 100...); 2) Фактичну дату варки (зазвичай внизу біля підпису, напр. '22.03.2026'). Поверни ЛИШЕ чистий JSON формат: {"barcodeBack": "...", "actualDate": "..."}.`;
                 }
 
                 const payload = {
@@ -428,7 +413,8 @@
 
                 if (side === 'front') {
                     if (resultObj.taskNumber) document.getElementById('tst-task').value = resultObj.taskNumber;
-                    if (resultObj.barcodeFront) document.getElementById('tst-bcFront').value = resultObj.barcodeFront;
+                    // Очищаємо пробіли зі штрих-коду, якщо ШІ їх додав
+                    if (resultObj.barcodeFront) document.getElementById('tst-bcFront').value = resultObj.barcodeFront.replace(/\s+/g, '');
                     if (resultObj.sauceName) document.getElementById('tst-sauce').value = resultObj.sauceName;
                     if (resultObj.productName) document.getElementById('tst-product').value = resultObj.productName;
                     if (resultObj.planQty) {
@@ -442,7 +428,7 @@
                     if (resultObj.planDate) document.getElementById('tst-planDate').value = resultObj.planDate;
                     if (resultObj.cook) document.getElementById('tst-cook').value = resultObj.cook;
                 } else {
-                    if (resultObj.barcodeBack) document.getElementById('tst-bcBack').value = resultObj.barcodeBack;
+                    if (resultObj.barcodeBack) document.getElementById('tst-bcBack').value = resultObj.barcodeBack.replace(/\s+/g, '');
                     if (resultObj.actualDate) document.getElementById('tst-actualDate').value = resultObj.actualDate;
                 }
                 showToast("✨ Маршрут розпізнано ШІ!");
@@ -460,7 +446,6 @@
             }
         }
 
-        // --- ІСТОРІЯ ЗМІНИ ---
         async function openHistory() {
             const histBox = document.getElementById('historyContent');
             let history = await localforage.getItem('historyReports') || [];
@@ -497,7 +482,6 @@
             await localforage.setItem('historyReports', history);
         }
 
-        // --- ПОПЕРЕДНІЙ ПЕРЕГЛЯД ПЕРЕД ВІДПРАВКОЮ ---
         function showPreview() {
             if (GOOGLE_SCRIPT_URL.includes("ВСТАВТЕ_ПОСИЛАННЯ")) { showToast("⚠️ Замініть GOOGLE_SCRIPT_URL в коді!", true); return; }
 
@@ -565,13 +549,11 @@
             document.getElementById('previewModal').classList.remove('flex');
         }
 
-        // --- ФІНАЛЬНА ВІДПРАВКА ДАНИХ АБО ОФЛАЙН ЗБЕРЕЖЕННЯ ---
         async function confirmSubmit() {
             const btnText = document.getElementById('confirmBtnText');
             const spinner = document.getElementById('confirmSpinner');
             btnText.innerText = "Відправка..."; spinner.classList.remove('hidden');
 
-            // Форматування ПІБ для привітання (беремо Прізвище та Ініціали, якщо є)
             const cookName = currentPayload.cook.split(' ').length > 1 
                 ? currentPayload.cook.split(' ')[0] + " " + currentPayload.cook.split(' ')[1] 
                 : currentPayload.cook;
@@ -592,7 +574,6 @@
                 setTimeout(() => location.reload(), 3000);
 
             } catch (e) {
-                // Надійне офлайн збереження через IndexedDB
                 let queue = await localforage.getItem('offlineReports') || [];
                 queue.push(currentPayload);
                 await localforage.setItem('offlineReports', queue);
@@ -614,7 +595,6 @@
             setTimeout(() => { t.classList.add('translate-x-full'); setTimeout(()=>t.remove(),300); }, duration);
         }
         
-        // Збереження Варника в пам'ять
         if(localStorage.getItem('qc_cook')) document.getElementById('tst-cook').value = localStorage.getItem('qc_cook');
         document.getElementById('tst-cook').onchange = (e) => localStorage.setItem('qc_cook', e.target.value);
     </script>
