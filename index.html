@@ -117,8 +117,8 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">№ Завдання *</label>
-                        <input type="number" id="tst-task" class="font-mono font-bold text-base" required>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">№ Завдання (5 цифр) *</label>
+                        <input type="text" inputmode="numeric" maxlength="5" id="tst-task" class="font-mono font-bold text-base" placeholder="12345" required>
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1 flex justify-between">
@@ -340,7 +340,7 @@
             }
         }
 
-        // 🔥 ОНОВЛЕНИЙ PROMPT ДЛЯ ШТРИХ-КОДІВ ТА НАЗВИ 🔥
+        // 🔥 ОНОВЛЕНИЙ PROMPT ДЛЯ ШТРИХ-КОДІВ ТА НОМЕРА ЗАВДАННЯ 🔥
         async function analyzeAIDirect(base64ImageFull, side) {
             const ind = document.getElementById('aiIndicator');
             const fields = side === 'front' 
@@ -381,7 +381,7 @@
                 let promptText = "Це документ виробництва. Ти повинен бути максимально точним. ";
                 if (side === 'front') {
                     promptText += `Прочитай ЛИЦЬОВУ сторону. Знайди: 
-                    1) Номер завдання; 
+                    1) Номер завдання (УВАГА: номер завдання ЗАВЖДИ складається рівно з 5 цифр, наприклад 12345); 
                     2) Назву соусу (УВАГА: назва соусу ЗАВЖДИ починається з 4-х цифр, наприклад '1108 Теріякі Bonsai'); 
                     3) Назву продукції; 
                     4) Планову кількість (напр. 1700 кг або 1520 шт); 
@@ -396,8 +396,9 @@
                 } else {
                     promptText += `Прочитай ЗВОРОТНУ сторону. Знайди: 
                     1) Штрих-код (УВАГА: зворотній штрих-код містить рівно 13 цифр і ЗАВЖДИ починається з цифри 2, наприклад 2000000098982. Шукай його під лініями штрих-коду); 
-                    2) Фактичну дату варки (зазвичай внизу біля підпису, напр. '22.03.2026'). 
-                    Поверни ЛИШЕ чистий JSON формат: {"barcodeBack": "...", "actualDate": "..."}.`;
+                    2) Фактичну дату варки (зазвичай внизу біля підпису, напр. '22.03.2026');
+                    3) Номер завдання (УВАГА: номер завдання ЗАВЖДИ складається рівно з 5 цифр, наприклад 12345).
+                    Поверни ЛИШЕ чистий JSON формат: {"barcodeBack": "...", "actualDate": "...", "taskNumber": "..."}.`;
                 }
 
                 const payload = {
@@ -443,6 +444,10 @@
                 } else {
                     if (resultObj.barcodeBack) document.getElementById('tst-bcBack').value = resultObj.barcodeBack.replace(/\s+/g, '');
                     if (resultObj.actualDate) document.getElementById('tst-actualDate').value = resultObj.actualDate;
+                    // Підтягуємо номер завдання зі звороту, якщо його ще немає (або для додаткового контролю)
+                    if (resultObj.taskNumber && !document.getElementById('tst-task').value) {
+                        document.getElementById('tst-task').value = resultObj.taskNumber;
+                    }
                 }
                 showToast("✨ Маршрут розпізнано ШІ!");
 
@@ -499,12 +504,14 @@
             if (GOOGLE_SCRIPT_URL.includes("ВСТАВТЕ_ПОСИЛАННЯ")) { showToast("⚠️ Замініть GOOGLE_SCRIPT_URL в коді!", true); return; }
 
             const cook = document.getElementById('tst-cook').value;
-            const task = document.getElementById('tst-task').value;
+            // Видаляємо всі нецифрові символи з номера завдання
+            const task = document.getElementById('tst-task').value.replace(/\D/g, ''); 
             const sauce = document.getElementById('tst-sauce').value;
             const bcFront = document.getElementById('tst-bcFront').value;
             const bcBack = document.getElementById('tst-bcBack').value;
             
             if(!cook) { showToast("Вкажіть Варника!", true); return; }
+            if(task.length !== 5) { showToast("⚠️ Номер завдання має містити рівно 5 цифр!", true, 4000); return; }
             if(!task || !sauce) { showToast("Заповніть номер завдання та назву соусу!", true); return; }
             if(!bcFront || !bcBack) { showToast("⚠️ Штрих-коди обов'язкові! Введіть їх вручну, якщо ШІ не знайшов.", true, 4000); return; }
             if(!photos.front || !photos.back) { showToast("Додайте обидва фото!", true); return; }
